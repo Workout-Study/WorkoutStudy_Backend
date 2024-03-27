@@ -1,0 +1,33 @@
+version: '3.8'
+
+networks:
+  chatting:
+    driver: bridge
+
+services:
+  postgresql-chatting:
+    image: postgres:latest
+    container_name: postgresql-chatting
+    environment:
+      POSTGRES_DB: chatting-db
+      POSTGRES_USER: chatting
+      POSTGRES_PASSWORD: chatting
+    ports:
+      - "5432:5432"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - chatting 
+
+  chatting-service:
+    image: chatting-service:latest
+    container_name: chatting-service
+    restart: on-failure
+    depends_on: # 여기를 수정했습니다
+      - postgresql-chatting
+    ports:
+      - "8080:8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - chatting
