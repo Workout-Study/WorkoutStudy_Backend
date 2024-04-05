@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -18,7 +19,7 @@ const (
 
 var DB *sql.DB
 
-func InitializeDB() {
+func InitializeDB() *sql.DB {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
@@ -45,9 +46,9 @@ func InitializeDB() {
 			id SERIAL PRIMARY KEY,
 			fit_group_name VARCHAR(30),
 			max_fit_mate INTEGER,
-			created_at TIMESTAMP NOT NULL,
+			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			created_by VARCHAR(30),
-			updated_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_by VARCHAR(30)
 		)`,
 		`CREATE TABLE IF NOT EXISTS fit_mate (
@@ -56,9 +57,26 @@ func InitializeDB() {
 			username VARCHAR(20),
 			nickname VARCHAR(10),
 			state BOOLEAN,
-			created_at TIMESTAMP NOT NULL,
+			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			created_by VARCHAR(30),
-			updated_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			updated_by VARCHAR(30)
+		)`,
+		`CREATE TABLE IF NOT EXISTS fit_group_mate (
+			fit_group_id INT REFERENCES fit_group(id),
+			fit_mate_id INT REFERENCES fit_mate(id),
+			PRIMARY KEY (fit_group_id, fit_mate_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS message (
+			message_id UUID PRIMARY KEY,
+			fit_group_id INT REFERENCES fit_group(id),
+			fit_mate_id INT REFERENCES fit_mate(id),
+			message VARCHAR(5000),
+			message_time TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			message_type VARCHAR(8) CHECK (message_type IN ('CHATTING', 'TICKET')),
+			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			created_by VARCHAR(30),
+			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_by VARCHAR(30)
 		)`,
 	}
@@ -82,6 +100,8 @@ func InitializeDB() {
         VALUES (1, '서경원', '경원이', TRUE, NOW(), '서경원', NOW(), '서경원') ON CONFLICT (id) DO NOTHING;`,
 		`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
         VALUES (2, '손흥민', '대흥민', TRUE, NOW(), '손흥민', NOW(), '손흥민') ON CONFLICT (id) DO NOTHING;`,
+		`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (1, 1);`,
+		`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (2, 1);`,
 	}
 
 	// 더미 데이터 삽입 실행
@@ -104,4 +124,22 @@ func InitializeDB() {
 		}
 	}
 	fmt.Println("Database initialized successfully with dummy data")
+
+	// 메시지 더미 데이터 삽입
+	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	for i := 1; i <= 20; i++ { // i의 범위를 1부터 20까지로 변경
+		for _, fitGroupID := range []int{1, 2} {
+			messageTime := baseTime.Add(time.Minute * time.Duration(i-1)) // 메시지의 시간을 분 단위로 조정하여 더욱 현실적으로 만듭니다.
+			messageText := fmt.Sprintf("안녕하세요%d", i)                      // 메시지 텍스트 동적 생성
+			query := `INSERT INTO message (message_id, fit_group_id, fit_mate_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
+        VALUES (gen_random_uuid(), $1, 1, $2, $3, 'CHATTING', NOW(), '서경원', NOW(), '서경원')`
+			_, err := DB.Exec(query, fitGroupID, messageText, messageTime)
+			if err != nil {
+				log.Fatalf("Failed to insert dummy message data: error: %v", err)
+			}
+		}
+	}
+	fmt.Println("Message dummy data inserted successfully")
+
+	return DB
 }
