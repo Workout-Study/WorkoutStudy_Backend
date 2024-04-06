@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -72,7 +71,7 @@ func InitializeDB() *sql.DB {
 			fit_group_id INT REFERENCES fit_group(id),
 			fit_mate_id INT REFERENCES fit_mate(id),
 			message VARCHAR(5000),
-			message_time TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			message_time TIMESTAMP(6),
 			message_type VARCHAR(8) CHECK (message_type IN ('CHATTING', 'TICKET')),
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			created_by VARCHAR(30),
@@ -126,14 +125,14 @@ func InitializeDB() *sql.DB {
 	fmt.Println("Database initialized successfully with dummy data")
 
 	// 메시지 더미 데이터 삽입
-	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
 	for i := 1; i <= 20; i++ { // i의 범위를 1부터 20까지로 변경
 		for _, fitGroupID := range []int{1, 2} {
-			messageTime := baseTime.Add(time.Minute * time.Duration(i-1)) // 메시지의 시간을 분 단위로 조정하여 더욱 현실적으로 만듭니다.
-			messageText := fmt.Sprintf("안녕하세요%d", i)                      // 메시지 텍스트 동적 생성
+			// 메시지의 시간을 분 단위로 조정하여 더욱 현실적으로 만듭니다.
+			messageText := fmt.Sprintf("안녕하세요%d", i) // 메시지 텍스트 동적 생성
 			query := `INSERT INTO message (message_id, fit_group_id, fit_mate_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
-        VALUES (gen_random_uuid(), $1, 1, $2, $3, 'CHATTING', NOW(), '서경원', NOW(), '서경원')`
-			_, err := DB.Exec(query, fitGroupID, messageText, messageTime)
+        VALUES (gen_random_uuid(), $1, 1, $2, NOW(), 'CHATTING', NOW(), '서경원', NOW(), '서경원')`
+			_, err := DB.Exec(query, fitGroupID, messageText)
 			if err != nil {
 				log.Fatalf("Failed to insert dummy message data: error: %v", err)
 			}

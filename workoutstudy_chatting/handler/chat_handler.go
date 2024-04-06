@@ -91,42 +91,43 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 }
 
 func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
-	// c.Query를 사용하여 쿼리 파라미터 값 추출
 	messageID := c.Query("message-id")
 	fitGroupIDStr := c.Query("fit-group-id")
 	fitMateID := c.Query("fit-mate-id")
 	messageTimeStr := c.Query("message-time")
 	messageType := c.Query("message-type")
 
-	// 추출된 파라미터 값 로그로 출력
 	log.Printf("Received message-id: %s", messageID)
 	log.Printf("Received fit-group-id: %s", fitGroupIDStr)
 	log.Printf("Received fit-mate-id: %s", fitMateID)
 	log.Printf("Received message-time: %s", messageTimeStr)
 	log.Printf("Received message-type: %s", messageType)
 
-	// 문자열 파라미터를 적절한 타입으로 변환
 	fitGroupID, err := strconv.Atoi(fitGroupIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fit-group-id"})
 		return
 	}
 
-	messageTime, err := util.ConvertUTCToLocalTime(messageTimeStr, "Asia/Seoul")
+	messageTime, err := util.ParseMessageTime(messageTimeStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "시간 변환 실패"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "시간 파싱 실패"})
 		return
 	}
 
-	// ChatService를 사용하여 메시지 조회
-	messages, err := h.ChatService.RetrieveMessages(fitGroupID, messageTime)
+	log.Printf("Retrieving messages for fitGroupID: %d, since: %v, messageID: %s", fitGroupID, messageTime, messageID)
+	messages, latestMessageId, err := h.ChatService.RetrieveMessages(fitGroupID, messageTime, messageID)
 	if err != nil {
+		log.Printf("Error retrieving messages: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "채팅 메시지 조회 실패"})
 		return
 	}
+	log.Printf("Retrieved messages: %d, latestMessageId: %s", len(messages), latestMessageId)
 
-	// 조회된 메시지 데이터를 응답에 포함하여 반환
-	c.JSON(http.StatusOK, gin.H{
-		"messages": messages,
-	})
+	// 조건에 따라 메시지 반환 로직
+	if messageID == latestMessageId {
+		c.JSON(http.StatusOK, gin.H{"messages": messages[:1]}) // 가장 최신 메시지만 반환
+	} else {
+		c.JSON(http.StatusOK, gin.H{"messages": messages})
+	}
 }

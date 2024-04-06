@@ -31,7 +31,7 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/ws/:fit-group", chatHandler.Chat)
-	r.GET("/retrieve/fit-group/:fit-mate-id", fitMateHandler.RetrieveFitGroupByMateID)
+	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByMateID)
 	r.GET("/retrieve/message", chatHandler.RetrieveMessages)
 	r.Run(":8080")
 }

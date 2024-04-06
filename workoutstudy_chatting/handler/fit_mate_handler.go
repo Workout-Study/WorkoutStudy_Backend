@@ -15,11 +15,9 @@ func NewFitMateHandler(s *service.FitMateService) *fitMateHandler {
 	return &fitMateHandler{Service: s}
 }
 
-// RetrieveFitGroupByMateID - fit_mate_id로 fit_group 조회
 func (ctrl *fitMateHandler) RetrieveFitGroupByMateID(c *gin.Context) {
-	fitMateID := c.Param("fitMateId") // URL에서 fit_mate_id 추출
+	fitMateID := c.Query("fitMateId")
 
-	// 서비스를 통해 fit_group 조회
 	fitGroup, err := ctrl.Service.GetFitGroupByMateID(fitMateID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})

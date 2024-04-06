@@ -1,22 +1,23 @@
-// util/timeutil.go
 package util
 
 import (
+	"log"
 	"time"
 )
 
-// ConvertUTCToLocalTime 함수가 time.Time 객체를 반환하도록 수정
-func ConvertUTCToLocalTime(utcTimeStr, locationStr string) (time.Time, error) {
-	utcTime, err := time.Parse(time.RFC3339, utcTimeStr)
+// ParseMessageTime 함수는 시간 문자열을 입력받아 time.Time 객체를 반환합니다.
+func ParseMessageTime(timeStr string) (time.Time, error) {
+	// PostgreSQL의 timestamp with time zone 형식에 맞춘 커스텀 레이아웃
+	const customLayout = "2006-01-02 15:04:05.000000"
+
+	// 커스텀 레이아웃을 사용하여 시간 문자열 파싱
+	parsedTime, err := time.Parse(customLayout, timeStr)
 	if err != nil {
+		log.Printf("시간 파싱 실패: %v", err)
 		return time.Time{}, err
 	}
 
-	loc, err := time.LoadLocation(locationStr)
-	if err != nil {
-		return time.Time{}, err
-	}
+	log.Printf("파싱된 시간: %s", parsedTime)
 
-	localTime := utcTime.In(loc)
-	return localTime, nil
+	return parsedTime, nil
 }
