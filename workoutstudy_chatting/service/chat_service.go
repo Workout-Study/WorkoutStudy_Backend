@@ -7,6 +7,7 @@ import (
 	"workoutstudy_chatting/persistence"
 )
 
+// TODO: 구조체 포인터로 바꾸기
 type ChatService struct {
 	repo persistence.ChatRepository
 }
@@ -15,9 +16,9 @@ func NewChatService(repo persistence.ChatRepository) *ChatService {
 	return &ChatService{repo: repo}
 }
 
-func (service *ChatService) RetrieveMessages(fitGroupID int, since time.Time, messageID string) ([]model.ChatMessage, string, error) {
+func (s *ChatService) RetrieveMessages(fitGroupID int, since time.Time, messageID string) ([]model.ChatMessage, string, error) {
 	log.Printf("Service layer: Retrieving messages for fitGroupID: %d, since: %v", fitGroupID, since)
-	messages, err := service.repo.RetrieveMessages(fitGroupID, since)
+	messages, err := s.repo.RetrieveMessages(fitGroupID, since)
 	if err != nil {
 		return nil, "", err
 	}
@@ -40,6 +41,6 @@ func (service *ChatService) RetrieveMessages(fitGroupID int, since time.Time, me
 	return filteredMessages, latestMessageId, nil
 }
 
-func (service *ChatService) SaveChatMessage(msg model.ChatMessage) error {
-	return service.repo.SaveMessage(msg)
+func (s *ChatService) SaveChatMessage(msg model.ChatMessage) error {
+	return s.repo.SaveMessage(msg)
 }

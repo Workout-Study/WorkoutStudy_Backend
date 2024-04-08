@@ -8,17 +8,19 @@ import (
 )
 
 type fitMateHandler struct {
-	Service *service.FitMateService
+	FitmateService service.FitMateService
 }
 
-func NewFitMateHandler(s *service.FitMateService) *fitMateHandler {
-	return &fitMateHandler{Service: s}
+func NewFitMateHandler(fitmateService service.FitMateService) *fitMateHandler {
+	return &fitMateHandler{
+		FitmateService: fitmateService,
+	}
 }
 
-func (ctrl *fitMateHandler) RetrieveFitGroupByMateID(c *gin.Context) {
+func (h *fitMateHandler) RetrieveFitGroupByMateID(c *gin.Context) {
 	fitMateID := c.Query("fitMateId")
 
-	fitGroup, err := ctrl.Service.GetFitGroupByMateID(fitMateID)
+	fitGroup, err := h.FitmateService.GetFitGroupByMateID(fitMateID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return

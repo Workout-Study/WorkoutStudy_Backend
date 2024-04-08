@@ -8,7 +8,6 @@ import (
 	"workoutstudy_chatting/model"
 )
 
-// ChatRepository 인터페이스 정의
 type ChatRepository interface {
 	RetrieveMessages(fitGroupID int, since time.Time) ([]model.ChatMessage, error)
 	SaveMessage(msg model.ChatMessage) error
@@ -17,6 +16,9 @@ type ChatRepository interface {
 type ChatRepositoryImpl struct {
 	DB *sql.DB
 }
+
+// 훈기 tip :
+var _ ChatRepository = &ChatRepositoryImpl{}
 
 func NewChatRepository(db *sql.DB) ChatRepository {
 	return &ChatRepositoryImpl{DB: db}

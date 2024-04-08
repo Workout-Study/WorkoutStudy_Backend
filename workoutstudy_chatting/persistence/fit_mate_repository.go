@@ -10,6 +10,7 @@ import (
 // FitMateRepository 인터페이스 선언
 type FitMateRepository interface {
 	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
+	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 }
 
 type PostgresFitMateRepository struct {
@@ -49,8 +50,22 @@ func (repo *PostgresFitMateRepository) GetFitGroupByMateID(fitMateID string) ([]
 	// Check for errors from iterating over rows
 	if err = rows.Err(); err != nil {
 		log.Printf("Error iterating rows: %v", err)
-		return nil, fmt.Errorf("error iterating rows: %w", err)
+		return nil, fmt.Errorf("repo-error: iterating rows: %w", err)
 	}
 
 	return fitGroups, nil
+}
+
+func (repo *PostgresFitMateRepository) GetFitMateByID(fitMateID string) (*model.FitMate, error) {
+	query := `
+	SELECT id, fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by
+	FROM fit_mate
+	WHERE id = $1
+	`
+	var fm model.FitMate
+	err := repo.DB.QueryRow(query, fitMateID).Scan(&fm.ID, &fm.FitGroupID, &fm.Username, &fm.Nickname, &fm.State, &fm.CreatedAt, &fm.CreatedBy, &fm.UpdatedAt, &fm.UpdatedBy)
+	if err != nil {
+		return nil, err
+	}
+	return &fm, nil
 }

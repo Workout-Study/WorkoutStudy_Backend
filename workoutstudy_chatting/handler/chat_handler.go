@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,11 +16,17 @@ import (
 )
 
 type ChatHandler struct {
-	ChatService *service.ChatService
+	ChatService     *service.ChatService
+	FitMateService  service.FitMateService // FitMateService 추가
+	FitGroupService *service.FitGroupService
 }
 
-func NewChatHandler(chatService *service.ChatService) *ChatHandler {
-	return &ChatHandler{ChatService: chatService}
+func NewChatHandler(chatService *service.ChatService, fitMateService service.FitMateService, fitGroupService *service.FitGroupService) *ChatHandler {
+	return &ChatHandler{
+		ChatService:     chatService,
+		FitMateService:  fitMateService,
+		FitGroupService: fitGroupService, // FitMateService 초기화
+	}
 }
 
 var upgrader = websocket.Upgrader{
@@ -29,83 +35,155 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// 채팅방별 클라이언트 관리를 위한 맵과 락
-var rooms = make(map[string]map[*websocket.Conn]bool)
-var roomLock = sync.Mutex{}
+type Room struct {
+	clients    map[*websocket.Conn]bool
+	broadcast  chan model.ChatMessage
+	register   chan *websocket.Conn
+	unregister chan *websocket.Conn
+}
 
-func (h *ChatHandler) Chat(c *gin.Context) {
-	fitGroup := c.Param("fit-group")
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		fmt.Println("웹 소켓 업그레이드 실패:", err)
-		return
+func NewRoom() *Room {
+	return &Room{
+		broadcast:  make(chan model.ChatMessage),
+		register:   make(chan *websocket.Conn),
+		unregister: make(chan *websocket.Conn),
+		clients:    make(map[*websocket.Conn]bool),
 	}
-	defer conn.Close()
+}
 
-	roomLock.Lock()
-	if rooms[fitGroup] == nil {
-		rooms[fitGroup] = make(map[*websocket.Conn]bool)
-	}
-	rooms[fitGroup][conn] = true
-	roomLock.Unlock()
-
+func (r *Room) run() {
 	for {
-		mt, message, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("메시지 읽기 실패:", err)
-			break
-		}
-
-		// 메시지를 model 패키지의 ChatMessage 구조체로 언마샬링
-		var chatMsg model.ChatMessage
-		if err := json.Unmarshal(message, &chatMsg); err != nil {
-			fmt.Println("메시지 파싱 실패:", err)
-			continue
-		}
-
-		// 메시지를 데이터베이스에 저장
-		err = h.ChatService.SaveChatMessage(chatMsg)
-		if err != nil {
-			log.Printf("메시지 저장 실패: %v", err)
-			// 메시지 저장 실패시 로그를 기록하고 계속 진행합니다. (또는 적절한 에러 처리를 수행합니다.)
-			continue
-		}
-
-		fmt.Println("받은 메시지:", chatMsg.Message)
-
-		// 메시지를 모든 클라이언트에게 브로드캐스트
-		msgToSend, err := json.Marshal(chatMsg)
-		if err != nil {
-			fmt.Println("메시지 JSON 변환 실패:", err)
-			continue
-		}
-
-		for client := range rooms[fitGroup] {
-			if err := client.WriteMessage(mt, msgToSend); err != nil {
-				fmt.Println("메시지 전송 실패:", err)
-				client.Close()
-				delete(rooms[fitGroup], client)
+		select {
+		case client := <-r.register:
+			// 채팅방 연결시 사용자를 클라이언트로 등록
+			r.clients[client] = true
+		case client := <-r.unregister:
+			// 클라이언트 등록 해제
+			if _, ok := r.clients[client]; ok {
+				delete(r.clients, client)
+				client.Close() // 여기서 웹소켓 연결 종료
+			}
+		case message := <-r.broadcast:
+			// 채팅방에 연결(웹 소켓으로 통신하고 있는)되어 있는 모든 사용자들에게 메시지 브로드캐스트
+			for client := range r.clients {
+				err := client.WriteJSON(message)
+				if err != nil {
+					// 에러 발생 시 클라이언트 해제 처리
+					log.Printf("error: %v", err)
+					client.Close()
+					delete(r.clients, client)
+				}
 			}
 		}
 	}
 }
 
-func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
-	messageID := c.Query("message-id")
-	fitGroupIDStr := c.Query("fit-group-id")
-	fitMateID := c.Query("fit-mate-id")
-	messageTimeStr := c.Query("message-time")
-	messageType := c.Query("message-type")
+// 채팅방별 클라이언트 관리를 위한 맵과 락
+var (
+	roomLock sync.Mutex
+	rooms    = make(map[string]*Room)
+)
 
-	log.Printf("Received message-id: %s", messageID)
-	log.Printf("Received fit-group-id: %s", fitGroupIDStr)
-	log.Printf("Received fit-mate-id: %s", fitMateID)
-	log.Printf("Received message-time: %s", messageTimeStr)
-	log.Printf("Received message-type: %s", messageType)
+func (h *ChatHandler) Chat(c *gin.Context) {
+	fitGroupIDStr := c.Query("fitGroupId")
+	fitMateIDStr := c.Query("fitMateId")
+	/*
+		TODO : 위 처럼 파라미터가 들어왔을 때
+		1. 해당 fitMate가 존재하는지 검증
+		1-1. 없으면 에러 메시지와 함께 웹소켓 연결 거부
+		2. fitGroupId 로 ftiGroup 존재하는지 검증
+		2-1. fitGroup 이 존재하지 않는다면 에러 메시지와 함께 웹 소켓 연결 거부
+		3. fitMate가 존재한다면 해당 fitMate가 fitGroup에 속해있는지 검증
+		3-1. fitMate가 fitGroup에 속해 있지 않다면 에러 메시지와 함께 웹소켓 연결 거부
+		4. 올바른 사용자라면 romm을 통해 연결
+		5. DB 테이블은 fit_group_mate 사용
+	*/
+
+	// FitMate 조회
+	fitMate, err := h.FitMateService.GetFitMateByID(fitMateIDStr)
+	if err != nil {
+		// 에러 처리: 조회 중 에러 발생
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "서버 내부 오류"})
+		return
+	}
+	if fitMate == nil {
+		// 에러 처리: FitMate가 존재하지 않음. 여기서 WebSocket 연결을 거부합니다.
+		c.JSON(http.StatusNotFound, gin.H{"error": "해당 FitMate가 존재하지 않습니다"})
+		return
+	}
+
+	roomLock.Lock()
+	room, ok := rooms[fitGroupIDStr]
+	if !ok {
+		room = NewRoom()
+		rooms[fitGroupIDStr] = room
+		go room.run()
+	}
+	roomLock.Unlock()
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Println("Websocket upgrade failed:", err)
+		return
+	}
+	defer conn.Close()
+
+	room.register <- conn
+
+	// 클라이언트로부터 메시지를 읽고 room의 broadcast 채널에 전달하는 로직...
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("read error: %v", err)
+			break
+		}
+
+		var chatMsg model.ChatMessage
+		log.Printf(chatMsg.Message)
+		if err := json.Unmarshal(message, &chatMsg); err != nil {
+			log.Printf("unmarshal error: %v", err)
+			continue
+		}
+
+		// 채팅방에 채팅 브로드 캐스팅
+		room.broadcast <- chatMsg
+
+		// 데이터베이스에 메시지 저장 로직은 여기에 포함...
+		err = h.ChatService.SaveChatMessage(chatMsg)
+		if err != nil {
+			log.Printf("메시지 저장 실패: %v", err)
+			// 메시지 저장 실패 시 클라이언트에게 실패 메시지 전송
+			failMsg := model.ChatMessage{Message: "메시지 저장에 실패했습니다."}
+			failMsgJSON, _ := json.Marshal(failMsg)
+			if writeErr := conn.WriteMessage(websocket.TextMessage, failMsgJSON); writeErr != nil {
+				log.Printf("클라이언트에게 실패 메시지 전송 실패: %v", writeErr)
+				conn.Close()
+				return
+			}
+			continue
+		}
+	}
+	room.unregister <- conn
+}
+
+func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
+	messageID := c.Query("messageId")
+	fitGroupIDStr := c.Query("fitGroupId")
+	fitMateID := c.Query("fitMateId")
+	messageTimeStr := c.Query("messageTime")
+	messageType := c.Query("messageType")
+
+	log.Printf("Received messageId: %s", messageID)
+	log.Printf("Received fitGroupId: %s", fitGroupIDStr)
+	log.Printf("Received fitMateId: %s", fitMateID)
+	log.Printf("Received messageTime: %s", messageTimeStr)
+	log.Printf("Received messageType: %s", messageType)
 
 	fitGroupID, err := strconv.Atoi(fitGroupIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fit-group-id"})
+		// TODO : 에러는 소문자로
+		// c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fit-group-id"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, errors.New("error: invalid fit-group-id"))
 		return
 	}
 

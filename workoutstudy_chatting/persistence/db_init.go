@@ -19,8 +19,7 @@ const (
 var DB *sql.DB
 
 func InitializeDB() *sql.DB {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 
 	var err error
 	DB, err = sql.Open("postgres", connStr)
@@ -81,8 +80,7 @@ func InitializeDB() *sql.DB {
 	}
 
 	for _, query := range createTables {
-		_, err := DB.Exec(query)
-		if err != nil {
+		if _, err := DB.Exec(query); err != nil {
 			log.Fatalf("Failed to execute query: %v, error: %v", query, err)
 		}
 	}
@@ -105,8 +103,7 @@ func InitializeDB() *sql.DB {
 
 	// 더미 데이터 삽입 실행
 	for _, query := range insertDummyData {
-		_, err := DB.Exec(query)
-		if err != nil {
+		if _, err := DB.Exec(query); err != nil {
 			log.Fatalf("Failed to insert dummy data: %v, error: %v", query, err)
 		}
 	}
@@ -126,19 +123,20 @@ func InitializeDB() *sql.DB {
 
 	// 메시지 더미 데이터 삽입
 
-	for i := 1; i <= 20; i++ { // i의 범위를 1부터 20까지로 변경
-		for _, fitGroupID := range []int{1, 2} {
-			// 메시지의 시간을 분 단위로 조정하여 더욱 현실적으로 만듭니다.
-			messageText := fmt.Sprintf("안녕하세요%d", i) // 메시지 텍스트 동적 생성
-			query := `INSERT INTO message (message_id, fit_group_id, fit_mate_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
-        VALUES (gen_random_uuid(), $1, 1, $2, NOW(), 'CHATTING', NOW(), '서경원', NOW(), '서경원')`
-			_, err := DB.Exec(query, fitGroupID, messageText)
-			if err != nil {
-				log.Fatalf("Failed to insert dummy message data: error: %v", err)
-			}
-		}
-	}
-	fmt.Println("Message dummy data inserted successfully")
+	// for i := 1; i <= 20; i++ { // i의 범위를 1부터 20까지로 변경
+	// 	for _, fitGroupID := range []int{1, 2} {
+	// 		// 메시지의 시간을 분 단위로 조정하여 더욱 현실적으로 만듭니다.
+	// 		messageText := fmt.Sprintf("안녕하세요%d", i) // 메시지 텍스트 동적 생성
+	// 		query := `INSERT INTO message (message_id, fit_group_id, fit_mate_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
+	//     VALUES (gen_random_uuid(), $1, 1, $2, NOW(), 'CHATTING', NOW(), '서경원', NOW(), '서경원')`
+	// 		_, err := DB.Exec(query, fitGroupID, messageText)
+	// 		if err != nil {
+	// 			log.Fatalf("Failed to insert dummy message data: error: %v", err)
+	// 		}
+	// 	}
+	// }
+
+	// fmt.Println("Message dummy data inserted successfully")
 
 	return DB
 }

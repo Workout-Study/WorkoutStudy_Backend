@@ -1,7 +1,7 @@
 version: '3.8'
 
 networks:
-  chatting:
+  fit_mate:
     driver: bridge
 
 services:
@@ -17,7 +17,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - chatting 
+      - fit_mate
 
   chatting-service:
     image: chatting-service:latest
@@ -32,4 +32,4 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - chatting
+      - fit_mate
