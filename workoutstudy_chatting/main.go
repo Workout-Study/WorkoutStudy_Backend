@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"workoutstudy_chatting/config"
 	"workoutstudy_chatting/handler"
 	"workoutstudy_chatting/persistence"
 	"workoutstudy_chatting/service"
@@ -27,5 +29,19 @@ func main() {
 	r.GET("/chat", chatHandler.Chat)
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByMateID)
 	r.GET("/retrieve/message", chatHandler.RetrieveMessages)
+
+	// Kafka Consumer 설정 및 실행
+	kafkaConsumer := config.NewKafkaConsumer("kafka-1:9092")
+	go func() {
+		fmt.Println("Kafka consumer started. Waiting for messages...")
+		for {
+			msg, err := kafkaConsumer.Consumer.ReadMessage(-1)
+			if err != nil {
+				fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+				continue
+			}
+			handler.HandleMessage(msg) // 메시지 처리를 위해 핸들러 호출 추가
+		}
+	}()
 	r.Run(":8888")
 }

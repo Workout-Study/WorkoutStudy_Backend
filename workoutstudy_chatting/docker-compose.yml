@@ -26,7 +26,7 @@ services:
     depends_on: # 여기를 수정했습니다
       - postgresql-chatting
     ports:
-      - "8080:8080"
+      - "8888:8888"
     environment:
       - GIN_MODE=debug
     volumes:
