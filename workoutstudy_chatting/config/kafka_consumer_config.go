@@ -1,50 +1,43 @@
 package config
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/segmentio/kafka-go"
 )
 
-// KafkaConsumer 구조체 정의
 type KafkaConsumer struct {
-	Consumer *kafka.Consumer // 소문자 'consumer'에서 대문자 'Consumer'로 변경하여 공개 필드로 만듦
+	Readers map[string]*kafka.Reader // 토픽 별로 Reader 저장
 }
 
-// NewKafkaConsumer 함수는 KafkaConsumer 인스턴스를 초기화합니다.
-func NewKafkaConsumer(bootstrapServers string) *KafkaConsumer {
-	configMap := &kafka.ConfigMap{
-		"bootstrap.servers":        bootstrapServers,
-		"group.id":                 "chatting-server-consumer",
-		"auto.offset.reset":        "latest",
-		"enable.auto.commit":       false,
-		"isolation.level":          "read_committed",
-		"allow.auto.create.topics": false,
+// KafkaConsumer 생성자
+func NewKafkaConsumer(bootstrapServers string, groupID string, topics []string) *KafkaConsumer {
+	readers := make(map[string]*kafka.Reader)
+	for _, topic := range topics {
+		readers[topic] = kafka.NewReader(kafka.ReaderConfig{
+			Brokers:  []string{bootstrapServers},
+			GroupID:  groupID,
+			Topic:    topic,
+			MinBytes: 10e3, // 10KB
+			MaxBytes: 10e6, // 10MB
+		})
 	}
-
-	consumer, err := kafka.NewConsumer(configMap)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create consumer: %s", err))
-	}
-
 	return &KafkaConsumer{
-		Consumer: consumer,
+		Readers: readers,
 	}
 }
 
-func (kc *KafkaConsumer) Consume(topics []string) {
-	err := kc.Consumer.SubscribeTopics(topics, nil)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to subscribe to topics: %s", err))
-	}
-
-	fmt.Println("Kafka consumer started. Waiting for messages...")
-	for {
-		msg, err := kc.Consumer.ReadMessage(-1)
-		if err != nil {
-			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
-			continue
-		}
-		fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
+// 메시지 소비 메서드
+func (kc *KafkaConsumer) Consume(ctx context.Context) {
+	for _, reader := range kc.Readers {
+		go func(r *kafka.Reader) {
+			for {
+				m, err := r.ReadMessage(ctx)
+				if err != nil {
+					break
+				}
+				println("Message on", m.Topic, string(m.Value))
+			}
+		}(reader)
 	}
 }
