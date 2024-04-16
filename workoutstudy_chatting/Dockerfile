@@ -5,9 +5,9 @@ FROM golang:1.19.4 AS builder
 WORKDIR /opt
 
 # 필요한 패키지 설치 전 libssl1.0.0 설치
-RUN apt-get update && apt-get install -y wget
-RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.8_amd64.deb
-RUN dpkg -i libssl1.0.0_1.0.2n-1ubuntu5.8_amd64.deb
+# RUN apt-get update && apt-get install -y wget
+# RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.8_amd64.deb
+# RUN dpkg -i libssl1.0.0_1.0.2n-1ubuntu5.8_amd64.deb
 
 # 필요한 패키지 설치 및 librdkafka-dev 설치
 RUN apt-get install -y \
