@@ -21,8 +21,8 @@ FROM alpine:latest
 
 WORKDIR /opt
 
-# 필요한 라이브러리 설치 (ca-certificates 만 필요)
-RUN apk --no-cache add ca-certificates
+# 필요한 라이브러리 설치 (ca-certificates, curl, jq 추가)
+RUN apk --no-cache add ca-certificates curl jq
 
 # 빌더 스테이지에서 빌드한 실행 파일을 복사
 COPY --from=builder /opt/workoutstudy_chatting .
