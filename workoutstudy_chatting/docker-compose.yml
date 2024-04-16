@@ -2,7 +2,7 @@ version: '3.8'
 
 networks:
   fit-mate:
-    driver: bridge
+    external: true
 
 services:
   postgresql-chatting:
@@ -23,12 +23,12 @@ services:
     image: chatting-service:latest
     container_name: chatting-service
     restart: on-failure
-    depends_on: # 여기를 수정했습니다
+    depends_on:
       - postgresql-chatting
     ports:
       - "8888:8888"
     environment:
-      - GIN_MODE=debug
+      GIN_MODE: debug
     volumes:
       - /etc/localtime:/etc/localtime:ro
     networks:
