@@ -4,11 +4,10 @@ FROM golang:1.19.4 AS builder
 # 작업 디렉토리 설정
 WORKDIR /opt
 
-# librdkafka의 최신 버전을 설치하기 위해 Confluent 리포지토리 추가
-RUN apt-get update && apt-get install -y software-properties-common \
-    && add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/7.0 stable main" \
-    && wget -qO - http://packages.confluent.io/deb/7.0/archive.key | apt-key add - \
-    && apt-get update
+# 필요한 패키지 설치 전 libssl1.0.0 설치
+RUN apt-get update && apt-get install -y wget
+RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.8_amd64.deb
+RUN dpkg -i libssl1.0.0_1.0.2n-1ubuntu5.8_amd64.deb
 
 # 필요한 패키지 설치 및 librdkafka-dev 설치
 RUN apt-get install -y \
