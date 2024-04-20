@@ -86,7 +86,7 @@ var (
 
 func (h *ChatHandler) Chat(c *gin.Context) {
 	fitGroupIDStr := c.Query("fitGroupId")
-	fitMateIDStr := c.Query("fitMateId")
+	// fitMateIDStr := c.Query("fitMateId")
 	/*
 		TODO : 위 처럼 파라미터가 들어왔을 때
 		1. 해당 fitMate가 존재하는지 검증
@@ -100,17 +100,17 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 	*/
 
 	// FitMate 조회
-	fitMate, err := h.FitMateService.GetFitMateByID(fitMateIDStr)
-	if err != nil {
-		// 에러 처리: 조회 중 에러 발생
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "서버 내부 오류"})
-		return
-	}
-	if fitMate == nil {
-		// 에러 처리: FitMate가 존재하지 않음. 여기서 WebSocket 연결을 거부합니다.
-		c.JSON(http.StatusNotFound, gin.H{"error": "해당 FitMate가 존재하지 않습니다"})
-		return
-	}
+	// fitMate, err := h.FitMateService.GetFitMateByID(fitMateIDStr)
+	// if err != nil {
+	// 	// 에러 처리: 조회 중 에러 발생
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "서버 내부 오류"})
+	// 	return
+	// }
+	// if fitMate == nil {
+	// 	// 에러 처리: FitMate가 존재하지 않음. 여기서 WebSocket 연결을 거부합니다.
+	// 	c.JSON(http.StatusNotFound, gin.H{"error": "해당 FitMate가 존재하지 않습니다"})
+	// 	return
+	// }
 
 	roomLock.Lock()
 	room, ok := rooms[fitGroupIDStr]

@@ -24,3 +24,11 @@ func (s *FitGroupService) GetFitGroupByID(fitGroupID int) (bool, error) {
 	}
 	return fitGroup != nil, nil
 }
+
+func (s *FitGroupService) GetFitMatesByFitGroupId(fitGroupID int) ([]int, error) {
+	fitMateIds, err := s.repo.GetFitMatesByFitGroupId(fitGroupID)
+	if err != nil {
+		return nil, err
+	}
+	return fitMateIds, nil
+}

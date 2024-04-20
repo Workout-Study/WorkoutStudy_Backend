@@ -8,6 +8,7 @@ import (
 type FitMateService interface {
 	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
+	SaveFitMate(*model.FitMate) (*model.FitMate, error)
 }
 
 type FitMateServiceImpl struct {
@@ -74,4 +75,8 @@ func (s *FitMateServiceImpl) GetFitMateByID(fitMateID string) (*model.FitMate, e
 		// 에러를 받으면 에러를 반환합니다.
 		return nil, err
 	}
+}
+
+func (s *FitMateServiceImpl) SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
+	return s.repo.SaveFitMate(fitMate)
 }

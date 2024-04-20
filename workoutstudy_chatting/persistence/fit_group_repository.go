@@ -9,6 +9,7 @@ import (
 
 type FitGroupRepository interface {
 	GetFitGroupByID(id int) (*model.FitGroup, error)
+	GetFitMatesByFitGroupId(id int) ([]int, error)
 }
 
 type FitGroupRepositoryImpl struct {
@@ -38,4 +39,40 @@ func (repo *FitGroupRepositoryImpl) GetFitGroupByID(id int) (*model.FitGroup, er
 	}
 
 	return &fitGroup, nil
+}
+
+func (repo *FitGroupRepositoryImpl) GetFitMatesByFitGroupId(id int) ([]int, error) {
+	// SQL 쿼리 정의
+	query := `
+        SELECT f_mate.fit_mate_id
+        FROM fit_group_mate f_mate
+        JOIN fit_mate f ON f_mate.fit_mate_id = f.id
+        WHERE f_mate.fit_group_id = $1
+    `
+
+	// 쿼리 실행을 위한 슬라이스 준비
+	var fitMateIds []int
+
+	// 쿼리 실행
+	rows, err := repo.DB.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// 결과 처리
+	for rows.Next() {
+		var fitMateId int
+		if err := rows.Scan(&fitMateId); err != nil {
+			return nil, err
+		}
+		fitMateIds = append(fitMateIds, fitMateId)
+	}
+
+	// 모든 결과 처리 후 에러 확인
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return fitMateIds, nil
 }

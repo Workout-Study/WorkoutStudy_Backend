@@ -11,6 +11,7 @@ import (
 type FitMateRepository interface {
 	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
+	SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error)
 }
 
 type PostgresFitMateRepository struct {
@@ -68,4 +69,12 @@ func (repo *PostgresFitMateRepository) GetFitMateByID(fitMateID string) (*model.
 		return nil, err
 	}
 	return &fm, nil
+}
+func (repo *PostgresFitMateRepository) SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
+	query := `INSERT INTO fit_mate (id, username, nickname, state, created_at, created_by, updated_at, updated_by) VALUES ($1, $2, $3, $4, NOW(), $5, NOW(), $5) RETURNING id`
+	err := repo.DB.QueryRow(query, fitMate.ID, fitMate.Username, fitMate.Nickname, fitMate.State, fitMate.CreatedBy).Scan(&fitMate.ID)
+	if err != nil {
+		return nil, err
+	}
+	return fitMate, nil
 }
