@@ -12,6 +12,9 @@ Version 2.0.0 : 2024.05.01 ~
 ### Application
 <a href="https://github.com/golang/go"><img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white"/></a>
 <a href="https://github.com/gin-gonic/gin"><img src="https://img.shields.io/badge/Gin-009688?style=for-the-badge&logo=gin&logoColor=white"/></a>
+<a href="https://github.com/gorilla/websocket"><img src="https://img.shields.io/badge/gorilla_websocket-blue?style=for-the-badge"/></a>
+<a href="https://github.com/segmentio/kafka-go"><img src="https://img.shields.io/badge/kafka_go-orange?style=for-the-badge"/></a>
+
 
 ### Database
 <a href="https://github.com/postgres/postgres"><img src="https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white"/></a>
