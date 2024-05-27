@@ -1,6 +1,7 @@
 package service
 
 import (
+	"log"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
@@ -9,6 +10,8 @@ type FitMateService interface {
 	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(*model.FitMate) (*model.FitMate, error)
+	DeleteFitMate(id int) ([]int, error)
+	HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse) error
 }
 
 type FitMateServiceImpl struct {
@@ -79,4 +82,70 @@ func (s *FitMateServiceImpl) GetFitMateByID(fitMateID string) (*model.FitMate, e
 
 func (s *FitMateServiceImpl) SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
 	return s.repo.SaveFitMate(fitMate)
+}
+
+func (s *FitMateServiceImpl) DeleteFitMate(id int) ([]int, error) {
+	return s.repo.DeleteFitMate(id)
+}
+
+/*
+비교 및 조치 수행
+1. Get Fit Mate list API 의 fitGroupId로 fit_group 테이블에서 fit_group 조회
+1-a. fit_group 존재하지 않을 시 Wait -> fitGroup이 최초 생성되어 아직 Get Fit Group Detail API의 처리가 끝나지 않은 것.
+1-b. fit_group 존재할 시 다음 단계 진행
+2. fit_group 존재할 시 fitGroupId로 fit_mate 테이블 조회
+2-a-1. 조회된 fit_mate 가 null -> 최초 생성된 fit_group 임을 의미
+2-a-2. 조회된 fit_mate 가 null 이 아닐 시 다음 단계 진행
+3. Response 의 Mate 정보와 fit_mate 조회 결과 비교
+4. Reponse 의 Mate 대로 fit_mate UPDATE & DELETE
+4-a. UPDATE : Response 애는 존재하고 fit_mate에는 없는 경우
+4-a-1. Response의 Mate 대로 fit_mate 생성(INSERT
+4-b. DELETE : Response에는 없고 fit_mate에는 존재하는 경우
+4-b-1. fit_mate 삭제(DELETE), Hard Delete 로 진행
+*/
+func (s *FitMateServiceImpl) HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse) error {
+	fitMateIds, err := s.repo.GetFitMatesIdsByFitGroupId(apiResponse.FitGroupId)
+	if err != nil {
+		log.Printf("Error fetching fit mate IDs from DB: %v\n", err)
+		return err
+	}
+
+	// API 결과와 DB 결과 비교 및 조치 수행
+	return s.compareAndUpdateFitMates(apiResponse, fitMateIds)
+}
+
+func (s *FitMateServiceImpl) compareAndUpdateFitMates(apiResponse model.GetFitMatesApiResponse, dbFitMateIds []int) error {
+	apiFitMateIdsMap := make(map[int]bool)
+	for _, detail := range apiResponse.FitMateDetails {
+		apiFitMateIdsMap[detail.FitMateId] = true
+	}
+
+	// DB에 있지만 API에는 없는 경우 - 삭제
+	for _, dbId := range dbFitMateIds {
+		if _, found := apiFitMateIdsMap[dbId]; !found {
+			if _, err := s.DeleteFitMate(dbId); err != nil {
+				log.Printf("Error deleting fit mate ID %d: %v", dbId, err)
+				return err
+			}
+		}
+	}
+
+	// API에는 있지만 DB에는 없는 경우 - 추가
+	for _, apiDetail := range apiResponse.FitMateDetails {
+		if _, exists := apiFitMateIdsMap[apiDetail.FitMateId]; !exists {
+			newFitMate := &model.FitMate{
+				ID:        apiDetail.FitMateId,
+				Username:  "새 유저",
+				Nickname:  "닉네임",
+				State:     true,
+				CreatedBy: "system",
+			}
+			if _, err := s.SaveFitMate(newFitMate); err != nil {
+				log.Printf("Error adding new fit mate ID %d: %v", apiDetail.FitMateId, err)
+				return err
+			}
+		}
+	}
+
+	return nil
 }

@@ -10,6 +10,9 @@ import (
 type FitGroupRepository interface {
 	GetFitGroupByID(id int) (*model.FitGroup, error)
 	GetFitMatesByFitGroupId(id int) ([]int, error)
+	SaveFitGroup(fitGroup *model.FitGroup) (*model.FitGroup, error)
+	DeleteFitGroup(fitGroupID int) error
+	UpdateFitGroup(fitGroup *model.FitGroup) error
 }
 
 type FitGroupRepositoryImpl struct {
@@ -75,4 +78,46 @@ func (repo *FitGroupRepositoryImpl) GetFitMatesByFitGroupId(id int) ([]int, erro
 	}
 
 	return fitMateIds, nil
+}
+
+func (repo *FitGroupRepositoryImpl) SaveFitGroup(fitGroup *model.FitGroup) (*model.FitGroup, error) {
+	query := `
+		INSERT INTO fit_group (fit_group_name, max_fit_mate, created_at, created_by, updated_at, updated_by)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
+
+	var id int
+	err := repo.DB.QueryRow(query, fitGroup.FitGroupName, fitGroup.MaxFitMate, fitGroup.CreatedAt, fitGroup.CreatedBy, fitGroup.UpdatedAt, fitGroup.UpdatedBy).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	fitGroup.ID = id
+	return fitGroup, nil
+}
+
+func (repo *FitGroupRepositoryImpl) DeleteFitGroup(fitGroupID int) error {
+	query := `DELETE FROM fit_group WHERE id = $1`
+
+	_, err := repo.DB.Exec(query, fitGroupID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *FitGroupRepositoryImpl) UpdateFitGroup(fitGroup *model.FitGroup) error {
+	query := `
+		UPDATE fit_group
+		SET fit_group_name = $1, category = $2, cycle = $3, frequency = $4, present_fit_mate_count = $5, max_fit_mate = $6, state = $7, created_at = $8, created_by = $9, updated_at = NOW(), updated_by = $11
+		WHERE id = $12
+	`
+	_, err := repo.DB.Exec(query, fitGroup.FitGroupName, fitGroup.Category, fitGroup.Cycle, fitGroup.Frequency, fitGroup.PresentFitMateCount, fitGroup.MaxFitMate, fitGroup.State, fitGroup.CreatedAt, fitGroup.CreatedBy, fitGroup.UpdatedBy, fitGroup.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

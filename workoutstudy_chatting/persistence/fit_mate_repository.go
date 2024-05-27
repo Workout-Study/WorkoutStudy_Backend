@@ -12,6 +12,8 @@ type FitMateRepository interface {
 	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error)
+	DeleteFitMate(id int) ([]int, error)
+	GetFitMatesIdsByFitGroupId(fitGroupId int) ([]int, error)
 }
 
 type PostgresFitMateRepository struct {
@@ -77,4 +79,52 @@ func (repo *PostgresFitMateRepository) SaveFitMate(fitMate *model.FitMate) (*mod
 		return nil, err
 	}
 	return fitMate, nil
+}
+
+func (repo *PostgresFitMateRepository) DeleteFitMate(id int) ([]int, error) {
+	query := `DELETE FROM fit_mate WHERE id = $1 RETURNING id`
+	rows, err := repo.DB.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var deletedIDs []int
+	for rows.Next() {
+		var deletedID int
+		if err := rows.Scan(&deletedID); err != nil {
+			return nil, err
+		}
+		deletedIDs = append(deletedIDs, deletedID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return deletedIDs, nil
+}
+
+func (repo *PostgresFitMateRepository) GetFitMatesIdsByFitGroupId(fitGoupId int) ([]int, error) {
+	query := `SELECT fit_mate_id FROM fit_group_mate WHERE fit_group_id = $1`
+	rows, err := repo.DB.Query(query, fitGoupId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var fitMateIds []int
+	for rows.Next() {
+		var fitMateId int
+		if err := rows.Scan(&fitMateId); err != nil {
+			return nil, err
+		}
+		fitMateIds = append(fitMateIds, fitMateId)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return fitMateIds, nil
 }

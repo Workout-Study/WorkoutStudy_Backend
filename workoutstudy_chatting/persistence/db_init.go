@@ -40,36 +40,44 @@ func InitializeDB() *sql.DB {
 	fmt.Println("Database connection pool initialized successfully")
 
 	createTables := []string{
+		`CREATE TABLE IF NOT EXISTS user (
+			id INTEGER PRIMARY KEY,
+			nickname VARCHAR(10) NOT NULL,
+			state BOOLEAN default false NOT NULL,
+			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			created_by VARCHAR(30),
+			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			updated_by VARCHAR(30)
+		)`,
 		`CREATE TABLE IF NOT EXISTS fit_group (
-			id SERIAL PRIMARY KEY,
+			id INTEGER PRIMARY KEY,
+			fit_leader_user_id INTERGER REFERENCES user(id) NOT NULL,
 			fit_group_name VARCHAR(30),
-			max_fit_mate INTEGER,
+			category INTEGER NOT NULL,
+			cycle INTEGER NOT NULL,
+			frequency INTEGER NOT NULL,
+			present_fit_mate_count INTEGER NOT NULL,
+			max_fit_mate INTEGER NOT NULL,
+			state BOOLEAN default false NOT NULL,
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			created_by VARCHAR(30),
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_by VARCHAR(30)
 		)`,
 		`CREATE TABLE IF NOT EXISTS fit_mate (
-			id SERIAL PRIMARY KEY,
-			fit_group_id INT REFERENCES fit_group(id),
-			username VARCHAR(20),
-			nickname VARCHAR(10),
-			state BOOLEAN,
-			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-			created_by VARCHAR(30),
+			id INTEGER PRIMARY KEY,
+			fit_group_id INTEGER REFERENCES fit_group(id) NOT NULL,
+			state BOOLEAN default false NOT NULL,
+			create_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			create_by VARCHAR(30),
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_by VARCHAR(30)
 		)`,
-		`CREATE TABLE IF NOT EXISTS fit_group_mate (
-			fit_group_id INT REFERENCES fit_group(id),
-			fit_mate_id INT REFERENCES fit_mate(id),
-			PRIMARY KEY (fit_group_id, fit_mate_id)
-		)`,
 		`CREATE TABLE IF NOT EXISTS message (
 			message_id UUID PRIMARY KEY,
-			fit_group_id INT REFERENCES fit_group(id),
-			fit_mate_id INT REFERENCES fit_mate(id),
-			message VARCHAR(5000),
+			user_id INTEGER REFERENCES user(id) NOT NULL,
+			fit_group_id INT REFERENCES fit_group(id) NOT NULL,
+			message TEXT NOT NULL,
 			message_time TIMESTAMP(6),
 			message_type VARCHAR(8) CHECK (message_type IN ('CHATTING', 'TICKET')),
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
@@ -88,38 +96,38 @@ func InitializeDB() *sql.DB {
 	fmt.Println("Database initialized successfully")
 
 	// 더미 데이터 삽입
-	insertDummyData := []string{
-		`INSERT INTO fit_group (fit_group_name, max_fit_mate, created_at, created_by, updated_at, updated_by)
-		VALUES ('운터디', 20, NOW(), '서경원', NOW(), '서경원');`,
-		`INSERT INTO fit_group (fit_group_name, max_fit_mate, created_at, created_by, updated_at, updated_by)
-		VALUES ('축구의신', 11, NOW(), '손흥민', NOW(), '손흥민');`,
-		`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
-        VALUES (1, '서경원', '경원이', TRUE, NOW(), '서경원', NOW(), '서경원') ON CONFLICT (id) DO NOTHING;`,
-		`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
-        VALUES (2, '손흥민', '대흥민', TRUE, NOW(), '손흥민', NOW(), '손흥민') ON CONFLICT (id) DO NOTHING;`,
-		`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (1, 1);`,
-		`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (2, 1);`,
-	}
+	// insertDummyData := []string{
+	// 	`INSERT INTO fit_group (fit_group_name, max_fit_mate, created_at, created_by, updated_at, updated_by)
+	// 	VALUES ('운터디', 20, NOW(), '서경원', NOW(), '서경원');`,
+	// 	`INSERT INTO fit_group (fit_group_name, max_fit_mate, created_at, created_by, updated_at, updated_by)
+	// 	VALUES ('축구의신', 11, NOW(), '손흥민', NOW(), '손흥민');`,
+	// 	`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
+	//     VALUES (1, '서경원', '경원이', TRUE, NOW(), '서경원', NOW(), '서경원') ON CONFLICT (id) DO NOTHING;`,
+	// 	`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
+	//     VALUES (2, '손흥민', '대흥민', TRUE, NOW(), '손흥민', NOW(), '손흥민') ON CONFLICT (id) DO NOTHING;`,
+	// 	`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (1, 1);`,
+	// 	`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (2, 1);`,
+	// }
 
 	// 더미 데이터 삽입 실행
-	for _, query := range insertDummyData {
-		if _, err := DB.Exec(query); err != nil {
-			log.Fatalf("Failed to insert dummy data: %v, error: %v", query, err)
-		}
-	}
+	// for _, query := range insertDummyData {
+	// 	if _, err := DB.Exec(query); err != nil {
+	// 		log.Fatalf("Failed to insert dummy data: %v, error: %v", query, err)
+	// 	}
+	// }
 
 	// 나머지 8명의 사용자에 대한 더미 데이터 삽입
-	for i := 3; i <= 10; i++ {
-		query := fmt.Sprintf(`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
-        VALUES (%d, '테스트유저%d', '테스트유저별명%d', TRUE, NOW(), '테스트유저%d', NOW(), '테스트유저%d') ON CONFLICT (id) DO NOTHING;`, i%2+1, i, i, i, i)
-		// fit_group_id를 교대로 1과 2로 설정합니다. i가 홀수일 때는 1, 짝수일 때는 2로.
+	// for i := 3; i <= 10; i++ {
+	// 	query := fmt.Sprintf(`INSERT INTO fit_mate (fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by)
+	//     VALUES (%d, '테스트유저%d', '테스트유저별명%d', TRUE, NOW(), '테스트유저%d', NOW(), '테스트유저%d') ON CONFLICT (id) DO NOTHING;`, i%2+1, i, i, i, i)
+	// fit_group_id를 교대로 1과 2로 설정합니다. i가 홀수일 때는 1, 짝수일 때는 2로.
 
-		_, err := DB.Exec(query)
-		if err != nil {
-			log.Fatalf("Failed to insert dummy data for fit_mate: %v, error: %v", query, err)
-		}
-	}
-	fmt.Println("Database initialized successfully with dummy data")
+	// 	_, err := DB.Exec(query)
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to insert dummy data for fit_mate: %v, error: %v", query, err)
+	// 	}
+	// }
+	// fmt.Println("Database initialized successfully with dummy data")
 
 	// 메시지 더미 데이터 삽입
 
