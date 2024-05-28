@@ -7,7 +7,7 @@ import (
 )
 
 type FitMateService interface {
-	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
+	GetFitGroupsByUserID(userID int) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(*model.FitMate) (*model.FitMate, error)
 	DeleteFitMate(id int) ([]int, error)
@@ -24,14 +24,14 @@ func NewFitMateService(repo persistence.FitMateRepository) FitMateService {
 	return &FitMateServiceImpl{repo: repo}
 }
 
-func (s *FitMateServiceImpl) GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error) {
+func (s *FitMateServiceImpl) GetFitGroupsByUserID(fitMateID int) ([]model.FitGroup, error) {
 	// 결과를 저장할 슬라이스 타입의 채널을 생성합니다.
 	resultChan := make(chan []model.FitGroup)
 	errorChan := make(chan error)
 
 	go func() {
 		// 저장소(repository)의 메서드를 호출합니다.
-		fitGroups, err := s.repo.GetFitGroupByMateID(fitMateID)
+		fitGroups, err := s.repo.GetFitGroupsByUserID(fitMateID)
 		if err != nil {
 			// 에러가 발생하면 errorChan에 에러를 전송합니다.
 			errorChan <- err

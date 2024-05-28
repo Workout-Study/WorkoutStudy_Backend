@@ -9,7 +9,7 @@ import (
 
 // FitMateRepository 인터페이스 선언
 type FitMateRepository interface {
-	GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error)
+	GetFitGroupsByUserID(userID int) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error)
 	DeleteFitMate(id int) ([]int, error)
@@ -25,25 +25,25 @@ func NewPostgresFitMateRepository(db *sql.DB) *PostgresFitMateRepository {
 	return &PostgresFitMateRepository{DB: db}
 }
 
-func (repo *PostgresFitMateRepository) GetFitGroupByMateID(fitMateID string) ([]model.FitGroup, error) {
+func (repo *PostgresFitMateRepository) GetFitGroupsByUserID(userID int) ([]model.FitGroup, error) {
 	query := `
-	SELECT fg.id, fg.fit_group_name, fg.max_fit_mate, fg.created_at, fg.created_by, fg.updated_at, fg.updated_by
+	SELECT fg.id, fg.fit_group_name, fg.category, fg.cycle, fg.frequency, fg.present_fit_mate_count, fg.max_fit_mate, fg.created_at, fg.created_by, fg.updated_at, fg.updated_by
 	FROM fit_group fg
-	INNER JOIN fit_group_mate fgm ON fg.id = fgm.fit_group_id
-	WHERE fgm.fit_mate_id = $1
+	INNER JOIN fit_mate fm ON fg.id = fm.fit_group_id
+	WHERE fm.user_id = $1
 	`
 
-	rows, err := repo.DB.Query(query, fitMateID)
+	rows, err := repo.DB.Query(query, userID)
 	if err != nil {
-		log.Printf("Error retrieving fit groups by mate ID: %v", err)
-		return nil, fmt.Errorf("error retrieving fit groups by mate ID: %w", err)
+		log.Printf("Error retrieving fit groups by user ID: %v", err)
+		return nil, fmt.Errorf("error retrieving fit groups by user ID: %w", err)
 	}
 	defer rows.Close()
 
 	var fitGroups []model.FitGroup
 	for rows.Next() {
 		var fg model.FitGroup
-		if err := rows.Scan(&fg.ID, &fg.FitGroupName, &fg.MaxFitMate, &fg.CreatedAt, &fg.CreatedBy, &fg.UpdatedAt, &fg.UpdatedBy); err != nil {
+		if err := rows.Scan(&fg.ID, &fg.FitGroupName, &fg.Category, &fg.Cycle, &fg.Frequency, &fg.PresentFitMateCount, &fg.MaxFitMate, &fg.CreatedAt, &fg.CreatedBy, &fg.UpdatedAt, &fg.UpdatedBy); err != nil {
 			log.Printf("Error scanning fit group: %v", err)
 			continue // or return an error; depends on your error handling strategy
 		}
