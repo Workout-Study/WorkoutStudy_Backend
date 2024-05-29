@@ -3,5 +3,218 @@
     "info": {
         "contact": {}
     },
-    "paths": {}
+    "paths": {
+        "/chat": {
+            "get": {
+                "description": "실시간 채팅 초기 연결 요청입니다.\n첫 연결 요청 시 웹소켓 연결이 설정되며, 이후 채팅 메시지는 웹소켓을 통해 전송됩니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "websocket chat",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "채팅방 연결을 위한 피트그룹 ID",
+                        "name": "fitGroupId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "WebSocket 연결이 성공적으로 설정되었습니다.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/retrieve/fit-group": {
+            "get": {
+                "description": "userId 로 해당 사용자가 속해 있는 피트그룹들의 정보를 조희",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "fitmate"
+                ],
+                "summary": "피트그룹 조회 API",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "사용자 ID, fitMateId 가 아님.",
+                        "name": "userId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FitGroup"
+                        }
+                    }
+                }
+            }
+        },
+        "/retrieve/message": {
+            "get": {
+                "description": "messageId 로 서버측 최신 채팅과 앱의 최신 채팅을 비교",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "message"
+                ],
+                "summary": "최신 채팅 내역을 확인하고 동기화 하기 위한 API",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "안드로이드 앱에서 생성된 message UUID",
+                        "name": "messageId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "피트그룹 채팅방 ID",
+                        "name": "fitGroupId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "사용자 ID, auth-server 의 userId, fit-mate-service 의 fitMateUserId",
+                        "name": "userId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "클라이언트측 메시지 생성 시간",
+                        "name": "messageTime",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "메시지 타입 (CHATTING or TICKET)",
+                        "name": "messageType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ChatMessage"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.ChatMessage": {
+            "type": "object",
+            "properties": {
+                "fitGroupId": {
+                    "type": "integer"
+                },
+                "fitMateId": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "messageId": {
+                    "type": "string"
+                },
+                "messageTime": {
+                    "type": "string"
+                },
+                "messageType": {
+                    "$ref": "#/definitions/model.MessageType"
+                }
+            }
+        },
+        "model.FitGroup": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "cycle": {
+                    "description": "운동 인증 주기 ( 1: 일주일, 2: 한달, 3: 일년 )",
+                    "type": "integer"
+                },
+                "fitGroupName": {
+                    "type": "string"
+                },
+                "fitLeaderUserID": {
+                    "type": "integer"
+                },
+                "frequency": {
+                    "description": "주기별 운동 인증 필요 횟수",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "maxFitMate": {
+                    "description": "fit group의 최대 fit mate 수",
+                    "type": "integer"
+                },
+                "presentFitMateCount": {
+                    "description": "현재 fit group에 속한 fit mate 수",
+                    "type": "integer"
+                },
+                "state": {
+                    "description": "fit group의 상태 (false: 활성, true: 비활성)",
+                    "type": "boolean"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MessageType": {
+            "type": "string",
+            "enum": [
+                "CHATTING",
+                "TICKET"
+            ],
+            "x-enum-varnames": [
+                "Chatting",
+                "Ticket"
+            ]
+        }
+    }
 }

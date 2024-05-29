@@ -84,6 +84,15 @@ var (
 	rooms    = make(map[string]*Room)
 )
 
+// @Summary websocket chat
+// @Description 실시간 채팅 초기 연결 요청입니다.
+// @Description 첫 연결 요청 시 웹소켓 연결이 설정되며, 이후 채팅 메시지는 웹소켓을 통해 전송됩니다.
+// @Tags chat
+// @Accept json
+// @Produce json
+// @Param fitGroupId query int true "채팅방 연결을 위한 피트그룹 ID"
+// @Success 101 {string} string "WebSocket 연결이 성공적으로 설정되었습니다."
+// @Router /chat [get]
 func (h *ChatHandler) Chat(c *gin.Context) {
 	fitGroupIDStr := c.Query("fitGroupId")
 	//	userIdStr := c.Query(	userId")
@@ -139,7 +148,7 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 		}
 
 		var chatMsg model.ChatMessage
-		log.Printf(chatMsg.Message)
+		log.Printf("received message: %s", chatMsg.Message)
 		if err := json.Unmarshal(message, &chatMsg); err != nil {
 			log.Printf("unmarshal error: %v", err)
 			continue
@@ -166,6 +175,18 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 	room.unregister <- conn
 }
 
+// @Summary 최신 채팅 내역을 확인하고 동기화 하기 위한 API
+// @Description messageId 로 서버측 최신 채팅과 앱의 최신 채팅을 비교
+// @Tags message
+// @Accept  json
+// @Produce  json
+// @Param messageId query int true "안드로이드 앱에서 생성된 message UUID"
+// @Param fitGroupId query int true "피트그룹 채팅방 ID"
+// @Param userId query int true "사용자 ID, auth-server 의 userId, fit-mate-service 의 fitMateUserId"
+// @Param messageTime query int true "클라이언트측 메시지 생성 시간"
+// @Param messageType query int true "메시지 타입 (CHATTING or TICKET)""
+// @Success 200 {array} model.ChatMessage
+// @Router /retrieve/message [get]
 func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	messageID := c.Query("messageId")
 	fitGroupIDStr := c.Query("fitGroupId")
