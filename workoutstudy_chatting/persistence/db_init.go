@@ -40,10 +40,10 @@ func InitializeDB() *sql.DB {
 	fmt.Println("Database connection pool initialized successfully")
 
 	createTables := []string{
-		`CREATE TABLE IF NOT EXISTS user (
+		`CREATE TABLE IF NOT EXISTS "user" (
 			id INTEGER PRIMARY KEY,
 			nickname VARCHAR(10) NOT NULL,
-			state BOOLEAN default false NOT NULL,
+			state BOOLEAN DEFAULT false NOT NULL,
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			created_by VARCHAR(30),
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
@@ -58,7 +58,7 @@ func InitializeDB() *sql.DB {
 			frequency INTEGER NOT NULL,
 			present_fit_mate_count INTEGER NOT NULL,
 			max_fit_mate INTEGER NOT NULL,
-			state BOOLEAN default false NOT NULL,
+			state BOOLEAN DEFAULT false NOT NULL,
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			created_by VARCHAR(30),
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
@@ -67,7 +67,7 @@ func InitializeDB() *sql.DB {
 		`CREATE TABLE IF NOT EXISTS fit_mate (
 			id INTEGER PRIMARY KEY,
 			fit_group_id INTEGER REFERENCES fit_group(id) NOT NULL,
-			state BOOLEAN default false NOT NULL,
+			state BOOLEAN DEFAULT false NOT NULL,
 			create_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			create_by VARCHAR(30),
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
