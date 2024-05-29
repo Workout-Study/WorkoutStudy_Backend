@@ -86,7 +86,7 @@ var (
 
 func (h *ChatHandler) Chat(c *gin.Context) {
 	fitGroupIDStr := c.Query("fitGroupId")
-	// fitMateIDStr := c.Query("fitMateId")
+	//	userIdStr := c.Query(	userId")
 	/*
 		TODO : 위 처럼 파라미터가 들어왔을 때
 		1. 해당 fitMate가 존재하는지 검증
@@ -100,7 +100,7 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 	*/
 
 	// FitMate 조회
-	// fitMate, err := h.FitMateService.GetFitMateByID(fitMateIDStr)
+	// fitMate, err := h.FitMateService.GetFitMateByID	userIdStr)
 	// if err != nil {
 	// 	// 에러 처리: 조회 중 에러 발생
 	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "서버 내부 오류"})
@@ -169,13 +169,13 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	messageID := c.Query("messageId")
 	fitGroupIDStr := c.Query("fitGroupId")
-	fitMateID := c.Query("fitMateId")
+	userId := c.Query("userId")
 	messageTimeStr := c.Query("messageTime")
 	messageType := c.Query("messageType")
 
 	log.Printf("Received messageId: %s", messageID)
 	log.Printf("Received fitGroupId: %s", fitGroupIDStr)
-	log.Printf("Received fitMateId: %s", fitMateID)
+	log.Printf("Received userId: %s", userId)
 	log.Printf("Received messageTime: %s", messageTimeStr)
 	log.Printf("Received messageType: %s", messageType)
 
