@@ -51,7 +51,7 @@ func InitializeDB() *sql.DB {
 		)`,
 		`CREATE TABLE IF NOT EXISTS fit_group (
 			id INTEGER PRIMARY KEY,
-			fit_leader_user_id INTERGER REFERENCES user(id) NOT NULL,
+			fit_leader_user_id INTEGER REFERENCES "user"(id) NOT NULL,
 			fit_group_name VARCHAR(30),
 			category INTEGER NOT NULL,
 			cycle INTEGER NOT NULL,
@@ -75,8 +75,8 @@ func InitializeDB() *sql.DB {
 		)`,
 		`CREATE TABLE IF NOT EXISTS message (
 			message_id UUID PRIMARY KEY,
-			user_id INTEGER REFERENCES user(id) NOT NULL,
-			fit_group_id INT REFERENCES fit_group(id) NOT NULL,
+			user_id INTEGER REFERENCES "user"(id) NOT NULL,
+			fit_group_id INTEGER REFERENCES fit_group(id) NOT NULL,
 			message TEXT NOT NULL,
 			message_time TIMESTAMP(6),
 			message_type VARCHAR(8) CHECK (message_type IN ('CHATTING', 'TICKET')),
