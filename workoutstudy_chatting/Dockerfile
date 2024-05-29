@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # CGO_ENABLED를 비활성화하여 애플리케이션 빌드 (kafka-go는 CGO가 필요하지 않음)
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o workoutstudy_chatting .
+RUN CGO_ENABLED=0 GOOS=linux go build -v -a -installsuffix cgo -o workoutstudy_chatting .
 
 # 최종 실행 환경
 FROM alpine:latest
