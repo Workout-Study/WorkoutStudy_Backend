@@ -66,6 +66,7 @@ func InitializeDB() *sql.DB {
 		)`,
 		`CREATE TABLE IF NOT EXISTS fit_mate (
 			id INTEGER PRIMARY KEY,
+			user_id INTEGER REFERENCES "user"(id) NOT NULL,
 			fit_group_id INTEGER REFERENCES fit_group(id) NOT NULL,
 			state BOOLEAN DEFAULT false NOT NULL,
 			create_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,

@@ -26,7 +26,7 @@ func NewFitMateHandler(fitmateService service.FitMateService) *fitMateHandler {
 // @Param userId query int true  "사용자 ID, fitMateId 가 아님.""
 // @Success 200 {object} model.FitGroup
 // @Router /retrieve/fit-group [get]
-func (h *fitMateHandler) RetrieveFitGroupByMateID(c *gin.Context) {
+func (h *fitMateHandler) RetrieveFitGroupByUserID(c *gin.Context) {
 	userID := c.Query("userId")
 
 	// userID string -> int 변환

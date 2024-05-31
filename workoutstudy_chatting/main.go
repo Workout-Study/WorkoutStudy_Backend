@@ -33,7 +33,7 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	r.GET("/chat", chatHandler.Chat)
-	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByMateID)
+	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
 	r.GET("/retrieve/message", chatHandler.RetrieveMessages)
 
 	// Kafka Consumer 설정 및 실행
