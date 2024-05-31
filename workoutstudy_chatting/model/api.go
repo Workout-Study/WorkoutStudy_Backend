@@ -37,3 +37,8 @@ type Mate struct {
 	FitMateUserNickname string `json:"fitMateUserNickname"`
 	CreatedAt           string `json:"createdAt"`
 }
+
+type GetUserInfoApiResponse struct {
+	UserID   int    `json:"userId"`
+	Nickname string `json:"nickname"`
+}

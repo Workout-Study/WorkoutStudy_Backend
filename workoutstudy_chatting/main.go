@@ -21,8 +21,8 @@ func main() {
 
 	// 서비스 인스턴스 생성
 	chatService := service.NewChatService(persistence.NewChatRepository(DB))
-	fitMateService := service.NewFitMateService(persistence.NewPostgresFitMateRepository(DB))
-	fitGroupService := service.NewFitGroupService(persistence.NewFitGroupRepository(DB))
+	fitMateService := service.NewFitMateService(persistence.NewPostgresFitMateRepository(DB), make(chan int))
+	fitGroupService := service.NewFitGroupService(persistence.NewFitGroupRepository(DB), make(chan int))
 
 	// Handler 인스턴스 생성
 	chatHandler := handler.NewChatHandler(chatService, fitMateService, fitGroupService)

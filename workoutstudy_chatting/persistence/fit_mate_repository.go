@@ -13,6 +13,7 @@ type FitMateRepository interface {
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error)
 	DeleteFitMate(id int) ([]int, error)
+	UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, error)
 	GetFitMatesIdsByFitGroupId(fitGroupId int) ([]int, error)
 }
 
@@ -61,20 +62,20 @@ func (repo *PostgresFitMateRepository) GetFitGroupsByUserID(userID int) ([]model
 
 func (repo *PostgresFitMateRepository) GetFitMateByID(fitMateID string) (*model.FitMate, error) {
 	query := `
-	SELECT id, fit_group_id, username, nickname, state, created_at, created_by, updated_at, updated_by
+	SELECT id, fit_group_id, state, created_at, created_by, updated_at, updated_by
 	FROM fit_mate
 	WHERE id = $1
 	`
 	var fm model.FitMate
-	err := repo.DB.QueryRow(query, fitMateID).Scan(&fm.ID, &fm.FitGroupID, &fm.Username, &fm.Nickname, &fm.State, &fm.CreatedAt, &fm.CreatedBy, &fm.UpdatedAt, &fm.UpdatedBy)
+	err := repo.DB.QueryRow(query, fitMateID).Scan(&fm.ID, &fm.FitGroupID, &fm.State, &fm.CreatedAt, &fm.CreatedBy, &fm.UpdatedAt, &fm.UpdatedBy)
 	if err != nil {
 		return nil, err
 	}
 	return &fm, nil
 }
 func (repo *PostgresFitMateRepository) SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
-	query := `INSERT INTO fit_mate (id, username, nickname, state, created_at, created_by, updated_at, updated_by) VALUES ($1, $2, $3, $4, NOW(), $5, NOW(), $5) RETURNING id`
-	err := repo.DB.QueryRow(query, fitMate.ID, fitMate.Username, fitMate.Nickname, fitMate.State, fitMate.CreatedBy).Scan(&fitMate.ID)
+	query := `INSERT INTO fit_mate (id, state, created_at, created_by, updated_at, updated_by) VALUES ($1, $2, $3, $4, NOW(), $5, NOW(), $5) RETURNING id`
+	err := repo.DB.QueryRow(query, fitMate.ID, fitMate.State, fitMate.CreatedBy).Scan(&fitMate.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +104,15 @@ func (repo *PostgresFitMateRepository) DeleteFitMate(id int) ([]int, error) {
 	}
 
 	return deletedIDs, nil
+}
+
+func (repo *PostgresFitMateRepository) UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
+	query := `UPDATE fit_mate SET state = $3, updated_at = NOW(), updated_by = $5 WHERE id = $1 RETURNING id`
+	err := repo.DB.QueryRow(query, fitMate.ID, fitMate.State, fitMate.UpdatedBy).Scan(&fitMate.ID)
+	if err != nil {
+		return nil, err
+	}
+	return fitMate, nil
 }
 
 func (repo *PostgresFitMateRepository) GetFitMatesIdsByFitGroupId(fitGoupId int) ([]int, error) {

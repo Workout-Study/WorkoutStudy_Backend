@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
@@ -14,11 +13,12 @@ type FitGroupServiceInterface interface {
 }
 
 type FitGroupService struct {
-	repo persistence.FitGroupRepository
+	repo            persistence.FitGroupRepository
+	fitGroupCreated chan int
 }
 
-func NewFitGroupService(repo persistence.FitGroupRepository) *FitGroupService {
-	return &FitGroupService{repo: repo}
+func NewFitGroupService(repo persistence.FitGroupRepository, ch chan int) *FitGroupService {
+	return &FitGroupService{repo: repo, fitGroupCreated: ch}
 }
 
 func (s *FitGroupService) GetFitGroupByID(fitGroupID int) (*model.FitGroup, error) {
@@ -64,7 +64,7 @@ Update
 */
 func (s *FitGroupService) HandleFitGroupEvent(apiResponse model.GetFitGroupDetailApiResponse) error {
 	// 1. Get Fit group detail API 의 fitGroupId로 fit_group 테이블 조회
-	fitGroup, err := s.GetFitGroupByID(apiResponse.FitGroupId)
+	fitGroup, err := s.repo.GetFitGroupByID(apiResponse.FitGroupId)
 	if err != nil {
 		return err
 	}
@@ -88,14 +88,14 @@ func (s *FitGroupService) HandleFitGroupEvent(apiResponse model.GetFitGroupDetai
 		}
 	} else {
 		// 1-b-1. DB에 존재하지 않을 시 fit_group 테이블에 API Response 로 row 생성
-		newFitGroup, err := s.SaveFitGroup(convertApiToModel(apiResponse))
+		newFitGroup, err := s.repo.SaveFitGroup(convertApiToModel(apiResponse))
 		if err != nil {
 			return err
 		}
+		s.fitGroupCreated <- newFitGroup.ID
 		// 1-b-2. row 생성 이후, fit_group row가 입력됐다는 것을 Get Fit Mate list API Handler 에게 알려야함
 		// This could be implemented via an internal event system or message queue
 		// Currently, assuming a callback or similar method is setup to handle this notification
-		notifyFitMateHandlers(newFitGroup.ID) // Pseudo-function
 		return nil
 	}
 }
@@ -105,12 +105,6 @@ func shouldUpdate(existing *model.FitGroup, response model.GetFitGroupDetailApiR
 	return existing.FitLeaderUserID != response.FitLeaderUserId ||
 		existing.FitGroupName != response.FitGroupName ||
 		existing.State != response.State
-}
-
-func notifyFitMateHandlers(fitGroupId int) {
-	// Pseudo-function to handle notification logic
-	// Implementation depends on your system architecture
-	fmt.Printf("Notify handlers that new Fit Group is created with ID: %d\n", fitGroupId)
 }
 
 func convertApiToModel(apiResp model.GetFitGroupDetailApiResponse) *model.FitGroup {

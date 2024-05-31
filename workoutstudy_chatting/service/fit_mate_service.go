@@ -2,6 +2,7 @@ package service
 
 import (
 	"log"
+	"strconv"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
@@ -11,17 +12,22 @@ type FitMateService interface {
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(*model.FitMate) (*model.FitMate, error)
 	DeleteFitMate(id int) ([]int, error)
+	UpdateFitMate(*model.FitMate) (*model.FitMate, error)
 	HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse) error
 }
 
 type FitMateServiceImpl struct {
-	repo persistence.FitMateRepository
+	repo           persistence.FitMateRepository
+	fitGroupEvents chan int
 }
 
 var _ FitMateService = &FitMateServiceImpl{}
 
-func NewFitMateService(repo persistence.FitMateRepository) FitMateService {
-	return &FitMateServiceImpl{repo: repo}
+func NewFitMateService(repo persistence.FitMateRepository, ch chan int) FitMateService {
+	return &FitMateServiceImpl{
+		repo:           repo,
+		fitGroupEvents: ch,
+	}
 }
 
 func (s *FitMateServiceImpl) GetFitGroupsByUserID(fitMateID int) ([]model.FitGroup, error) {
@@ -88,6 +94,10 @@ func (s *FitMateServiceImpl) DeleteFitMate(id int) ([]int, error) {
 	return s.repo.DeleteFitMate(id)
 }
 
+func (s *FitMateServiceImpl) UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
+	return s.repo.UpdateFitMate(fitMate)
+}
+
 /*
 비교 및 조치 수행
 1. Get Fit Mate list API 의 fitGroupId로 fit_group 테이블에서 fit_group 조회
@@ -104,43 +114,58 @@ func (s *FitMateServiceImpl) DeleteFitMate(id int) ([]int, error) {
 4-b-1. fit_mate 삭제(DELETE), Hard Delete 로 진행
 */
 func (s *FitMateServiceImpl) HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse) error {
+	select {
+	case fitGroupID := <-s.fitGroupEvents:
+		if fitGroupID != apiResponse.FitGroupId {
+			log.Printf("Waiting for FitGroup ID %d, but received %d", apiResponse.FitGroupId, fitGroupID)
+			return nil // 혹은 적절한 에러 처리
+		}
+		log.Printf("Proceeding with FitGroup ID %d", fitGroupID)
+	default:
+		log.Printf("No FitGroup creation events available")
+	}
+
 	fitMateIds, err := s.repo.GetFitMatesIdsByFitGroupId(apiResponse.FitGroupId)
 	if err != nil {
-		log.Printf("Error fetching fit mate IDs from DB: %v\n", err)
+		log.Printf("Error fetching fit mate IDs from DB: %v", err)
 		return err
 	}
 
-	// API 결과와 DB 결과 비교 및 조치 수행
 	return s.compareAndUpdateFitMates(apiResponse, fitMateIds)
 }
 
 func (s *FitMateServiceImpl) compareAndUpdateFitMates(apiResponse model.GetFitMatesApiResponse, dbFitMateIds []int) error {
 	apiFitMateIdsMap := make(map[int]bool)
+	dbFitMateMap := make(map[int]*model.FitMate)
+
 	for _, detail := range apiResponse.FitMateDetails {
 		apiFitMateIdsMap[detail.FitMateId] = true
+		if dbFitMate, err := s.repo.GetFitMateByID(strconv.Itoa(detail.FitMateId)); err == nil {
+			dbFitMateMap[detail.FitMateId] = dbFitMate
+		}
+		// fit_group 존재하지 않을 시 wait
 	}
 
-	// DB에 있지만 API에는 없는 경우 - 삭제
 	for _, dbId := range dbFitMateIds {
-		if _, found := apiFitMateIdsMap[dbId]; !found {
-			if _, err := s.DeleteFitMate(dbId); err != nil {
-				log.Printf("Error deleting fit mate ID %d: %v", dbId, err)
-				return err
-			}
+		_, err := s.repo.DeleteFitMate(dbId)
+		if err != nil {
+			log.Printf("Error deleting fit mate ID %d: %v", dbId, err)
+			return err
 		}
 	}
 
-	// API에는 있지만 DB에는 없는 경우 - 추가
+	//
 	for _, apiDetail := range apiResponse.FitMateDetails {
-		if _, exists := apiFitMateIdsMap[apiDetail.FitMateId]; !exists {
+		if _, exists := dbFitMateMap[apiDetail.FitMateId]; !exists {
 			newFitMate := &model.FitMate{
-				ID:        apiDetail.FitMateId,
-				Username:  "새 유저",
-				Nickname:  "닉네임",
-				State:     true,
-				CreatedBy: "system",
+				ID:         apiDetail.FitMateId,
+				UserID:     apiDetail.FitMateUserId, // Change the field name from "UserID" to "UserID"
+				FitGroupID: apiResponse.FitGroupId,
+				State:      false,
+				CreatedBy:  "system",
 			}
-			if _, err := s.SaveFitMate(newFitMate); err != nil {
+			_, err := s.repo.SaveFitMate(newFitMate)
+			if err != nil {
 				log.Printf("Error adding new fit mate ID %d: %v", apiDetail.FitMateId, err)
 				return err
 			}
@@ -149,3 +174,16 @@ func (s *FitMateServiceImpl) compareAndUpdateFitMates(apiResponse model.GetFitMa
 
 	return nil
 }
+
+// TODO : fit mate UPDATE 할 게 현재 딱히 없음. state 는 조회 결과에 없고, nickname 은 user-create-event로 처리함
+// for _, apiDetail := range apiResponse.FitMateDetails {
+// 	if dbFitMate, exists := dbFitMateMap[apiDetail.FitMateId]; exists {
+// 		if dbFitMate.State != apiDetail.State {
+// 			_, err := s.UpdateFitMate(dbFitMate)
+// 			if err != nil {
+// 				log.Printf("Error updating fit mate ID %d: %v", apiDetail.FitMateId, err)
+// 				return err
+// 			}
+// 		}
+// 	}
+// }
