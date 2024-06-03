@@ -97,27 +97,27 @@ func InitializeDB() *sql.DB {
 	fmt.Println("Database initialized successfully")
 
 	// 더미 데이터 삽입
-	insertDummyData := []string{
-		`INSERT INTO "user" (id, nickname, state, created_at, created_by, updated_at, updated_by) 
-		VALUES (100, '더미유저100', TRUE, NOW(), '더미유저100', NOW(), '더미유저100');`,
-		`INSERT INTO fit_group (id, fit_leader_user_id, fit_group_name, category, cycle, frequency, present_fit_mate, max_fit_mate, state, created_at, created_by, updated_at, updated_by)
-		VALUES (100, 100, '운터디', 1, 1, 4, 1, 20, FALSE, NOW(), '더미유저100', NOW(), '더미유저100');`,
-		`INSERT INTO fit_group (id, fit_leader_user_id, fit_group_name, category, cycle, frequency, present_fit_mate, max_fit_mate, state, created_at, created_by, updated_at, updated_by)
-		VALUES (101, 100, '축터디', 5, 1, 2, 1, 20, FALSE, NOW(), '더미유저100', NOW(), '더미유저100');`,
-		`INSERT INTO fit_mate (id, user_id, fit_group_id, state, created_at, created_by, updated_at, updated_by)
-	    VALUES (100, 100, 100, FALSE, NOW(), '더미유저100', NOW(), '더미유저100') ON CONFLICT (id) DO NOTHING;`,
-		`INSERT INTO fit_mate (id, user_id, fit_group_id, state, created_at, created_by, updated_at, updated_by)
-	    VALUES (101, 100, 101, FALSE, NOW(), '더미유저100', NOW(), '더미유저100') ON CONFLICT (id) DO NOTHING;`,
-		`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (1, 1);`,
-		`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (2, 1);`,
-	}
+	// insertDummyData := []string{
+	// 	`INSERT INTO "user" (id, nickname, state, created_at, created_by, updated_at, updated_by)
+	// 	VALUES (100, '더미유저100', TRUE, NOW(), '더미유저100', NOW(), '더미유저100');`,
+	// 	`INSERT INTO fit_group (id, fit_leader_user_id, fit_group_name, category, cycle, frequency, present_fit_mate, max_fit_mate, state, created_at, created_by, updated_at, updated_by)
+	// 	VALUES (100, 100, '운터디', 1, 1, 4, 1, 20, FALSE, NOW(), '더미유저100', NOW(), '더미유저100');`,
+	// 	`INSERT INTO fit_group (id, fit_leader_user_id, fit_group_name, category, cycle, frequency, present_fit_mate, max_fit_mate, state, created_at, created_by, updated_at, updated_by)
+	// 	VALUES (101, 100, '축터디', 5, 1, 2, 1, 20, FALSE, NOW(), '더미유저100', NOW(), '더미유저100');`,
+	// 	`INSERT INTO fit_mate (id, user_id, fit_group_id, state, created_at, created_by, updated_at, updated_by)
+	//     VALUES (100, 100, 100, FALSE, NOW(), '더미유저100', NOW(), '더미유저100') ON CONFLICT (id) DO NOTHING;`,
+	// 	`INSERT INTO fit_mate (id, user_id, fit_group_id, state, created_at, created_by, updated_at, updated_by)
+	//     VALUES (101, 100, 101, FALSE, NOW(), '더미유저100', NOW(), '더미유저100') ON CONFLICT (id) DO NOTHING;`,
+	// 	`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (1, 1);`,
+	// 	`INSERT INTO fit_group_mate (fit_group_id, fit_mate_id) VALUES (2, 1);`,
+	// }
 
 	// 더미 데이터 삽입 실행
-	for _, query := range insertDummyData {
-		if _, err := DB.Exec(query); err != nil {
-			log.Fatalf("Failed to insert dummy data: %v, error: %v", query, err)
-		}
-	}
+	// for _, query := range insertDummyData {
+	// 	if _, err := DB.Exec(query); err != nil {
+	// 		log.Fatalf("Failed to insert dummy data: %v, error: %v", query, err)
+	// 	}
+	// }
 
 	// // 나머지 8명의 사용자에 대한 더미 데이터 삽입
 	// for i := 3; i <= 10; i++ {
