@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type GetFitGroupDetailApiResponse struct {
 	PresentFitMateCount    int      `json:"presentFitMateCount"`
 	MultiMediaEndPoints    []string `json:"multiMediaEndPoints"`
@@ -39,6 +41,8 @@ type Mate struct {
 }
 
 type GetUserInfoApiResponse struct {
-	UserID   int    `json:"userId"`
-	Nickname string `json:"nickname"`
+	UserID    int       `json:"userId"`
+	Nickname  string    `json:"nickname"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
