@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -36,18 +35,20 @@ var upgrader = websocket.Upgrader{
 }
 
 type Room struct {
-	clients    map[*websocket.Conn]bool
-	broadcast  chan model.ChatMessage
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
+	clients       map[*websocket.Conn]bool
+	broadcast     chan model.ChatMessage
+	register      chan *websocket.Conn
+	unregister    chan *websocket.Conn
+	fitGroupIDStr string
 }
 
-func NewRoom() *Room {
+func NewRoom(fitGroupIDStr string) *Room {
 	return &Room{
-		broadcast:  make(chan model.ChatMessage),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
-		clients:    make(map[*websocket.Conn]bool),
+		broadcast:     make(chan model.ChatMessage),
+		register:      make(chan *websocket.Conn),
+		unregister:    make(chan *websocket.Conn),
+		clients:       make(map[*websocket.Conn]bool),
+		fitGroupIDStr: fitGroupIDStr,
 	}
 }
 
@@ -55,20 +56,22 @@ func (r *Room) run() {
 	for {
 		select {
 		case client := <-r.register:
-			// 채팅방 연결시 사용자를 클라이언트로 등록
 			r.clients[client] = true
 		case client := <-r.unregister:
-			// 클라이언트 등록 해제
 			if _, ok := r.clients[client]; ok {
 				delete(r.clients, client)
-				client.Close() // 여기서 웹소켓 연결 종료
+				client.Close()
+				if len(r.clients) == 0 {
+					roomLock.Lock()
+					delete(rooms, r.fitGroupIDStr)
+					roomLock.Unlock()
+					return
+				}
 			}
 		case message := <-r.broadcast:
-			// 채팅방에 연결(웹 소켓으로 통신하고 있는)되어 있는 모든 사용자들에게 메시지 브로드캐스트
 			for client := range r.clients {
 				err := client.WriteJSON(message)
 				if err != nil {
-					// 에러 발생 시 클라이언트 해제 처리
 					log.Printf("error: %v", err)
 					client.Close()
 					delete(r.clients, client)
@@ -99,7 +102,7 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 	roomLock.Lock()
 	room, ok := rooms[fitGroupIDStr]
 	if !ok {
-		room = NewRoom()
+		room = NewRoom(fitGroupIDStr)
 		rooms[fitGroupIDStr] = room
 		go room.run()
 	}
@@ -129,14 +132,11 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 			continue
 		}
 
-		// 채팅방에 채팅 브로드 캐스팅
 		room.broadcast <- chatMsg
 
-		// 데이터베이스에 메시지 저장 로직은 여기에 포함...
 		err = h.ChatService.SaveChatMessage(chatMsg)
 		if err != nil {
 			log.Printf("메시지 저장 실패: %v", err)
-			// 메시지 저장 실패 시 클라이언트에게 실패 메시지 전송
 			failMsg := model.ChatMessage{Message: "메시지 저장에 실패했습니다."}
 			failMsgJSON, _ := json.Marshal(failMsg)
 			if writeErr := conn.WriteMessage(websocket.TextMessage, failMsgJSON); writeErr != nil {
@@ -179,7 +179,7 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	if err != nil {
 		// TODO : 에러는 소문자로
 		// c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fit-group-id"})
-		c.AbortWithStatusJSON(http.StatusBadRequest, errors.New("error: invalid fit-group-id"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "잘못된 fit-group-id"})
 		return
 	}
 

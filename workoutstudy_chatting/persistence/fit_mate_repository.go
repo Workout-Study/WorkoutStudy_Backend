@@ -15,6 +15,7 @@ type FitMateRepository interface {
 	DeleteFitMate(id int) ([]int, error)
 	UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, error)
 	GetFitMatesIdsByFitGroupId(fitGroupId int) ([]int, error)
+	CheckFitGroupExists(fitGroupID int) (bool, error)
 }
 
 type PostgresFitMateRepository struct {
@@ -137,4 +138,11 @@ func (repo *PostgresFitMateRepository) GetFitMatesIdsByFitGroupId(fitGoupId int)
 	}
 
 	return fitMateIds, nil
+}
+
+func (repo *PostgresFitMateRepository) CheckFitGroupExists(fitGroupID int) (bool, error) {
+	query := "SELECT EXISTS(SELECT 1 FROM fit_group WHERE id = $1)"
+	var exists bool
+	err := repo.DB.QueryRow(query, fitGroupID).Scan(&exists)
+	return exists, err
 }

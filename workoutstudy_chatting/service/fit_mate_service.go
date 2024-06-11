@@ -115,18 +115,29 @@ func (s *FitMateService) UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, 
 4-b. DELETE : Response에는 없고 fit_mate에는 존재하는 경우
 4-b-1. fit_mate 삭제(DELETE), Hard Delete 로 진행
 */
+// fit_mate_service.go
 func (s *FitMateService) HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse, fitGroupEvents chan int) error {
-	// 10초 동안 대기하며 fitGroupEvents 채널에서 이벤트 수신 대기
-	timeout := time.After(10 * time.Second)
-	select {
-	case fitGroupID := <-fitGroupEvents:
-		if fitGroupID != apiResponse.FitGroupId {
-			log.Printf("Waiting for FitGroup ID %d, but received %d", apiResponse.FitGroupId, fitGroupID)
-			return nil // 혹은 적절한 에러 처리
+	// fitGroupId로 fit_group 테이블 조회
+	fitGroupExists, err := s.repo.CheckFitGroupExists(apiResponse.FitGroupId)
+	if err != nil {
+		log.Printf("Error checking fit group existence: %v", err)
+		return err
+	}
+
+	// fit_group 존재하지 않을 시 10초 대기
+	if !fitGroupExists {
+		log.Printf("FitGroup ID %d does not exist. Waiting...", apiResponse.FitGroupId)
+		timeout := time.After(10 * time.Second)
+		select {
+		case fitGroupID := <-fitGroupEvents:
+			if fitGroupID != apiResponse.FitGroupId {
+				log.Printf("Waiting for FitGroup ID %d, but received %d", apiResponse.FitGroupId, fitGroupID)
+				return nil // 혹은 적절한 에러 처리
+			}
+			log.Printf("Proceeding with FitGroup ID %d", fitGroupID)
+		case <-timeout:
+			log.Printf("Timeout waiting for FitGroup ID %d", apiResponse.FitGroupId)
 		}
-		log.Printf("Proceeding with FitGroup ID %d", fitGroupID)
-	case <-timeout:
-		log.Printf("Timeout waiting for FitGroup ID %d", apiResponse.FitGroupId)
 	}
 
 	fitMateIds, err := s.repo.GetFitMatesIdsByFitGroupId(apiResponse.FitGroupId)
@@ -142,22 +153,26 @@ func (s *FitMateService) compareAndUpdateFitMates(apiResponse model.GetFitMatesA
 	apiFitMateIdsMap := make(map[int]bool)
 	dbFitMateMap := make(map[int]*model.FitMate)
 
+	// FitMateDetails 처리 로직
 	for _, detail := range apiResponse.FitMateDetails {
 		apiFitMateIdsMap[detail.FitMateId] = true
 		if dbFitMate, err := s.repo.GetFitMateByID(strconv.Itoa(detail.FitMateId)); err == nil {
 			dbFitMateMap[detail.FitMateId] = dbFitMate
 		}
-		// fit_group 존재하지 않을 시 wait
 	}
 
+	// DB에 존재하는 FitMate들 삭제
 	for _, dbId := range dbFitMateIds {
-		_, err := s.repo.DeleteFitMate(dbId)
-		if err != nil {
-			log.Printf("Error deleting fit mate ID %d: %v", dbId, err)
-			return err
+		if !apiFitMateIdsMap[dbId] {
+			_, err := s.repo.DeleteFitMate(dbId)
+			if err != nil {
+				log.Printf("Error deleting fit mate ID %d: %v", dbId, err)
+				return err
+			}
 		}
 	}
 
+	// 새로운 FitMate들 추가
 	for _, apiDetail := range apiResponse.FitMateDetails {
 		if _, exists := dbFitMateMap[apiDetail.FitMateId]; !exists {
 			newFitMate := &model.FitMate{
