@@ -3,34 +3,36 @@ package service
 import (
 	"log"
 	"strconv"
+	"time"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
 
-type FitMateService interface {
+type FitMateUseCase interface {
 	GetFitGroupsByUserID(userID int) ([]model.FitGroup, error)
 	GetFitMateByID(fitMateID string) (*model.FitMate, error)
 	SaveFitMate(*model.FitMate) (*model.FitMate, error)
 	DeleteFitMate(id int) ([]int, error)
 	UpdateFitMate(*model.FitMate) (*model.FitMate, error)
-	HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse) error
+	HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse, fitGroupEvents chan int) error
 }
 
-type FitMateServiceImpl struct {
+// 인터페이스 구현 확인
+var _ FitMateUseCase = (*FitMateService)(nil)
+
+type FitMateService struct {
 	repo           persistence.FitMateRepository
 	fitGroupEvents chan int
 }
 
-var _ FitMateService = &FitMateServiceImpl{}
-
-func NewFitMateService(repo persistence.FitMateRepository, ch chan int) FitMateService {
-	return &FitMateServiceImpl{
+func NewFitMateService(repo persistence.FitMateRepository, ch chan int) *FitMateService {
+	return &FitMateService{
 		repo:           repo,
 		fitGroupEvents: ch,
 	}
 }
 
-func (s *FitMateServiceImpl) GetFitGroupsByUserID(fitMateID int) ([]model.FitGroup, error) {
+func (s *FitMateService) GetFitGroupsByUserID(fitMateID int) ([]model.FitGroup, error) {
 	// 결과를 저장할 슬라이스 타입의 채널을 생성합니다.
 	resultChan := make(chan []model.FitGroup)
 	errorChan := make(chan error)
@@ -58,7 +60,7 @@ func (s *FitMateServiceImpl) GetFitGroupsByUserID(fitMateID int) ([]model.FitGro
 	}
 }
 
-func (s *FitMateServiceImpl) GetFitMateByID(fitMateID string) (*model.FitMate, error) {
+func (s *FitMateService) GetFitMateByID(fitMateID string) (*model.FitMate, error) {
 	// 결과를 저장할 포인터 타입의 채널을 생성합니다.
 	resultChan := make(chan *model.FitMate)
 	errorChan := make(chan error)
@@ -86,15 +88,15 @@ func (s *FitMateServiceImpl) GetFitMateByID(fitMateID string) (*model.FitMate, e
 	}
 }
 
-func (s *FitMateServiceImpl) SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
+func (s *FitMateService) SaveFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
 	return s.repo.SaveFitMate(fitMate)
 }
 
-func (s *FitMateServiceImpl) DeleteFitMate(id int) ([]int, error) {
+func (s *FitMateService) DeleteFitMate(id int) ([]int, error) {
 	return s.repo.DeleteFitMate(id)
 }
 
-func (s *FitMateServiceImpl) UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
+func (s *FitMateService) UpdateFitMate(fitMate *model.FitMate) (*model.FitMate, error) {
 	return s.repo.UpdateFitMate(fitMate)
 }
 
@@ -113,16 +115,18 @@ func (s *FitMateServiceImpl) UpdateFitMate(fitMate *model.FitMate) (*model.FitMa
 4-b. DELETE : Response에는 없고 fit_mate에는 존재하는 경우
 4-b-1. fit_mate 삭제(DELETE), Hard Delete 로 진행
 */
-func (s *FitMateServiceImpl) HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse) error {
+func (s *FitMateService) HandleFitMateEvent(apiResponse model.GetFitMatesApiResponse, fitGroupEvents chan int) error {
+	// 10초 동안 대기하며 fitGroupEvents 채널에서 이벤트 수신 대기
+	timeout := time.After(10 * time.Second)
 	select {
-	case fitGroupID := <-s.fitGroupEvents:
+	case fitGroupID := <-fitGroupEvents:
 		if fitGroupID != apiResponse.FitGroupId {
 			log.Printf("Waiting for FitGroup ID %d, but received %d", apiResponse.FitGroupId, fitGroupID)
 			return nil // 혹은 적절한 에러 처리
 		}
 		log.Printf("Proceeding with FitGroup ID %d", fitGroupID)
-	default:
-		log.Printf("No FitGroup creation events available")
+	case <-timeout:
+		log.Printf("Timeout waiting for FitGroup ID %d", apiResponse.FitGroupId)
 	}
 
 	fitMateIds, err := s.repo.GetFitMatesIdsByFitGroupId(apiResponse.FitGroupId)
@@ -134,7 +138,7 @@ func (s *FitMateServiceImpl) HandleFitMateEvent(apiResponse model.GetFitMatesApi
 	return s.compareAndUpdateFitMates(apiResponse, fitMateIds)
 }
 
-func (s *FitMateServiceImpl) compareAndUpdateFitMates(apiResponse model.GetFitMatesApiResponse, dbFitMateIds []int) error {
+func (s *FitMateService) compareAndUpdateFitMates(apiResponse model.GetFitMatesApiResponse, dbFitMateIds []int) error {
 	apiFitMateIdsMap := make(map[int]bool)
 	dbFitMateMap := make(map[int]*model.FitMate)
 
@@ -154,7 +158,6 @@ func (s *FitMateServiceImpl) compareAndUpdateFitMates(apiResponse model.GetFitMa
 		}
 	}
 
-	//
 	for _, apiDetail := range apiResponse.FitMateDetails {
 		if _, exists := dbFitMateMap[apiDetail.FitMateId]; !exists {
 			newFitMate := &model.FitMate{

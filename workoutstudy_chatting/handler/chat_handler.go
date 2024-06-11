@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"workoutstudy_chatting/model" // model 패키지 import 추가
+	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/service"
 	"workoutstudy_chatting/util"
 
@@ -16,16 +16,16 @@ import (
 )
 
 type ChatHandler struct {
-	ChatService     *service.ChatService
-	FitMateService  service.FitMateService // FitMateService 추가
-	FitGroupService *service.FitGroupService
+	ChatService     service.ChatUseCase     // 인터페이스 사용
+	FitMateService  service.FitMateUseCase  // 인터페이스 사용
+	FitGroupService service.FitGroupUseCase // 인터페이스 사용
 }
 
-func NewChatHandler(chatService *service.ChatService, fitMateService service.FitMateService, fitGroupService *service.FitGroupService) *ChatHandler {
+func NewChatHandler(chatService *service.ChatService, fitMateService service.FitMateUseCase, fitGroupService service.FitGroupUseCase) *ChatHandler {
 	return &ChatHandler{
 		ChatService:     chatService,
 		FitMateService:  fitMateService,
-		FitGroupService: fitGroupService, // FitMateService 초기화
+		FitGroupService: fitGroupService,
 	}
 }
 
@@ -95,31 +95,6 @@ var (
 // @Router /chat [get]
 func (h *ChatHandler) Chat(c *gin.Context) {
 	fitGroupIDStr := c.Query("fitGroupId")
-	//	userIdStr := c.Query(	userId")
-	/*
-		TODO : 위 처럼 파라미터가 들어왔을 때
-		1. 해당 fitMate가 존재하는지 검증
-		1-1. 없으면 에러 메시지와 함께 웹소켓 연결 거부
-		2. fitGroupId 로 ftiGroup 존재하는지 검증
-		2-1. fitGroup 이 존재하지 않는다면 에러 메시지와 함께 웹 소켓 연결 거부
-		3. fitMate가 존재한다면 해당 fitMate가 fitGroup에 속해있는지 검증
-		3-1. fitMate가 fitGroup에 속해 있지 않다면 에러 메시지와 함께 웹소켓 연결 거부
-		4. 올바른 사용자라면 romm을 통해 연결
-		5. DB 테이블은 fit_group_mate 사용
-	*/
-
-	// FitMate 조회
-	// fitMate, err := h.FitMateService.GetFitMateByID	userIdStr)
-	// if err != nil {
-	// 	// 에러 처리: 조회 중 에러 발생
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "서버 내부 오류"})
-	// 	return
-	// }
-	// if fitMate == nil {
-	// 	// 에러 처리: FitMate가 존재하지 않음. 여기서 WebSocket 연결을 거부합니다.
-	// 	c.JSON(http.StatusNotFound, gin.H{"error": "해당 FitMate가 존재하지 않습니다"})
-	// 	return
-	// }
 
 	roomLock.Lock()
 	room, ok := rooms[fitGroupIDStr]

@@ -7,7 +7,13 @@ import (
 	"workoutstudy_chatting/persistence"
 )
 
-// TODO: 구조체 포인터로 바꾸기
+type ChatUseCase interface {
+	RetrieveMessages(fitGroupID int, messageTime time.Time, messageID string) ([]model.ChatMessage, string, error)
+	SaveChatMessage(msg model.ChatMessage) error
+}
+
+var _ ChatUseCase = (*ChatService)(nil)
+
 type ChatService struct {
 	repo persistence.ChatRepository
 }

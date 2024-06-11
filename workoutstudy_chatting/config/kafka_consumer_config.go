@@ -2,6 +2,9 @@ package config
 
 import (
 	"context"
+	"log"
+
+	"workoutstudy_chatting/handler"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -27,17 +30,18 @@ func NewKafkaConsumer(bootstrapServers string, groupID string, topics []string) 
 	}
 }
 
-// 메시지 소비 메서드
-func (kc *KafkaConsumer) Consume(ctx context.Context) {
-	for _, reader := range kc.Readers {
-		go func(r *kafka.Reader) {
+// 메시지 Consume 메서드
+func (kc *KafkaConsumer) Consume(ctx context.Context, msgChan chan handler.MessageEvent) {
+	for topic, reader := range kc.Readers {
+		go func(topic string, r *kafka.Reader) {
 			for {
 				m, err := r.ReadMessage(ctx)
 				if err != nil {
+					log.Printf("Error reading message from topic %s: %v\n", topic, err)
 					break
 				}
-				println("Message on", m.Topic, string(m.Value))
+				msgChan <- handler.MessageEvent{Message: m, Service: nil}
 			}
-		}(reader)
+		}(topic, reader)
 	}
 }

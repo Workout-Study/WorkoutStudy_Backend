@@ -25,10 +25,9 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (repo *UserRepositoryImpl) SaveUser(user *model.User) (*model.User, error) {
-	query := `INSERT INTO user (id, nickname, created_at, created_by, updated_at, updated_by) VALUES ($1, $2, NOW(), $3, NOW(), $4) RETURNING id`
+	query := `INSERT INTO user (id, nickname, state, created_at, created_by, updated_at, updated_by) VALUES ($1, $2, $3, NOW(), $4, NOW(), $5) RETURNING id`
 
-	// 쿼리 실행
-	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.CreatedBy, user.UpdatedBy).Scan(&user.ID)
+	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.CreatedBy, user.UpdatedBy).Scan(&user.ID)
 	if err != nil {
 		log.Printf("Error saving user: %v", err)
 		return nil, fmt.Errorf("error saving user: %w", err)

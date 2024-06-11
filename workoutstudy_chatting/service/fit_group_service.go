@@ -1,16 +1,20 @@
 package service
 
 import (
+	"log"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
 
-type FitGroupServiceInterface interface {
+type FitGroupUseCase interface {
 	GetFitGroupByID(fitGroupID int) (*model.FitGroup, error)
 	GetFitMatesByFitGroupId(fitGroupID int) ([]int, error)
 	SaveFitGroup(fitGroup *model.FitGroup) (*model.FitGroup, error)
-	HandleFitGroupEvent(apiResponse model.GetFitGroupDetailApiResponse) error
+	HandleFitGroupEvent(apiResponse model.GetFitGroupDetailApiResponse, fitGroupEvents chan int) error
 }
+
+// 인터페이스 구현 확인
+var _ FitGroupUseCase = (*FitGroupService)(nil)
 
 type FitGroupService struct {
 	repo            persistence.FitGroupRepository
@@ -41,28 +45,7 @@ func (s *FitGroupService) SaveFitGroup(fitGroup *model.FitGroup) (*model.FitGrou
 	return s.repo.SaveFitGroup(fitGroup)
 }
 
-/*
-Create
-1. Get Fit group detail API 의 fitGroupId로 fit_group 테이블 조회
-1-a. 존재할 시 Create skip -> Delete 로 이동
-1-b-1. DB에 존재하지 않을 시 fit_group 테이블에 API Response 로 row 생성
-1-b-2. row 생성 이후, fit_group row가 입력됐다는 것을 Get Fit Mate list API Handler 에게 알려야함
-
-	-> 그래야 fit_group 의 ID 를 FK 로 fit_mate 생성 가능
-
-Delete
-1. Create 1-a 에서 존재할 시 진행
-2. API Response 의 state 확인
-2-a. state 가 true 일 시 DB에서 해당 fit_group의 state 를 true 로 변경 -> 삭제
-2-b. state 가 false 일 시 진행 skip
-
-Update
-1. Delete 2 에서 state 가 false 일 시 진행
-2. API Response 와 DB 의 fit_group 정보 비교
-2-a. 다를 시 DB 정보를 API Response 로 업데이트
-2-b. 같을 시 진행 skip
-*/
-func (s *FitGroupService) HandleFitGroupEvent(apiResponse model.GetFitGroupDetailApiResponse) error {
+func (s *FitGroupService) HandleFitGroupEvent(apiResponse model.GetFitGroupDetailApiResponse, fitGroupEvents chan int) error {
 	// 1. Get Fit group detail API 의 fitGroupId로 fit_group 테이블 조회
 	fitGroup, err := s.repo.GetFitGroupByID(apiResponse.FitGroupId)
 	if err != nil {
@@ -92,10 +75,13 @@ func (s *FitGroupService) HandleFitGroupEvent(apiResponse model.GetFitGroupDetai
 		if err != nil {
 			return err
 		}
-		s.fitGroupCreated <- newFitGroup.ID
-		// 1-b-2. row 생성 이후, fit_group row가 입력됐다는 것을 Get Fit Mate list API Handler 에게 알려야함
-		// This could be implemented via an internal event system or message queue
-		// Currently, assuming a callback or similar method is setup to handle this notification
+		// 1-b-2. row 생성 이후, fit_group row가 입력됐다는 것을 Get Fit Mate list API Handler 에게 알림
+		select {
+		case fitGroupEvents <- newFitGroup.ID:
+			log.Printf("Notified fit mate handler of new fit group ID %d", newFitGroup.ID)
+		default:
+			log.Printf("Failed to notify fit mate handler of new fit group ID %d", newFitGroup.ID)
+		}
 		return nil
 	}
 }

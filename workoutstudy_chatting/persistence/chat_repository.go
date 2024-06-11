@@ -20,7 +20,8 @@ type ChatRepositoryImpl struct {
 }
 
 // 훈기 tip : 인터페이스에 정의된 함수 중 구현안된거 체크
-var _ ChatRepository = &ChatRepositoryImpl{}
+// var _ ChatRepository = &ChatRepositoryImpl{}
+var _ ChatRepository = (*ChatRepositoryImpl)(nil)
 
 func NewChatRepository(db *sql.DB) ChatRepository {
 	return &ChatRepositoryImpl{DB: db}

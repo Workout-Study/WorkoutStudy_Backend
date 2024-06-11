@@ -9,10 +9,10 @@ import (
 )
 
 type fitMateHandler struct {
-	FitmateService service.FitMateService
+	FitmateService service.FitMateUseCase
 }
 
-func NewFitMateHandler(fitmateService service.FitMateService) *fitMateHandler {
+func NewFitMateHandler(fitmateService service.FitMateUseCase) *fitMateHandler {
 	return &fitMateHandler{
 		FitmateService: fitmateService,
 	}
