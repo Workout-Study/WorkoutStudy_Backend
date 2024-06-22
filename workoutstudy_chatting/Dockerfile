@@ -26,6 +26,8 @@ RUN apk --no-cache add ca-certificates curl jq
 
 # 빌더 스테이지에서 빌드한 실행 파일을 복사
 COPY --from=builder /opt/workoutstudy_chatting .
+# docs 디렉토리를 복사
+COPY --from=builder /opt/docs /opt/docs  
 
 # 실행 권한 부여
 RUN chmod +x ./workoutstudy_chatting
