@@ -30,8 +30,10 @@ func main() {
 
 	r := gin.Default()
 
+	// 정적 파일 제공 설정
+	r.Static("/docs", "./docs") // 이 부분에서 docs 디렉토리를 정적 파일로 제공
 	// Swagger 라우트 설정
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/swagger.json")))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
 
 	r.GET("/chat", chatHandler.Chat)
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
