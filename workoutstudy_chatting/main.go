@@ -32,8 +32,9 @@ func main() {
 
 	// 정적 파일 제공 설정
 	r.Static("/swagger", "./swagger")
+
 	// Swagger 라우트 설정
-	r.GET("/swagger/index.html", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
 
 	r.GET("/chat", chatHandler.Chat)
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
@@ -42,8 +43,6 @@ func main() {
 	// Kafka Consumer 설정 및 실행
 	kafkaConsumer := config.NewKafkaConsumer("kafka-1:9092", "chatting-server-consumer", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
 	// context 생성
-	// Go 에서 요청 간의 데이터, 취소, 신호, 데드라인 등을 전달하는 방법을 제공함
-	// 주로 네트워크 요청, 서버 핸들러, 백그라운드 작업을 제어하고 취소하는 데 사용
 	ctx := context.Background()
 
 	msgChan := make(chan handler.MessageEvent)
