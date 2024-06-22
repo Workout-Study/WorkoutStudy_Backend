@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "workoutstudy_chatting/docs" // Swagger docs
 )
 
 func main() {
@@ -29,7 +31,7 @@ func main() {
 	r := gin.Default()
 
 	// 정적 파일 제공 설정
-	r.Static("/docs", "./docs")
+	r.Static("/swagger", "./swagger")
 	// Swagger 라우트 설정
 	r.GET("/swagger/index.html", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
 
