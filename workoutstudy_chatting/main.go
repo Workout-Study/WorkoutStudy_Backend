@@ -31,7 +31,7 @@ func main() {
 	r := gin.Default()
 
 	// Swagger 라우트 설정
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/swagger.json")))
 
 	r.GET("/chat", chatHandler.Chat)
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
