@@ -31,7 +31,7 @@ func main() {
 	// 정적 파일 제공 설정
 	r.Static("/docs", "./docs")
 	// Swagger 라우트 설정
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/swagger/index.html", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
 
 	r.GET("/chat", chatHandler.Chat)
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
