@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
 	"workoutstudy_chatting/model"
@@ -102,10 +101,11 @@ func (repo *ChatRepositoryImpl) RetrieveMessagesInRange(fitGroupID int, start, e
 }
 
 func (repo *ChatRepositoryImpl) SaveMessage(msg model.ChatMessage) error {
+	log.Printf("chat repository 에서 메시지 저장 시작: %v", msg)
 	query := `
-    INSERT INTO message (message_id, fit_group_id, fit_mate_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
+    INSERT INTO message (message_id, user_id, fit_group_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
 	VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, NOW(), $7)
     `
-	_, err := repo.DB.Exec(query, msg.ID, msg.FitGroupID, msg.FitMateID, msg.Message, msg.MessageTime, msg.MessageType, fmt.Sprintf("%d", msg.FitMateID))
+	_, err := repo.DB.Exec(query, msg.ID, msg.FitGroupID, msg.UserID, msg.Message, msg.MessageTime, msg.MessageType, time.Now(), msg.UserID, time.Now(), msg.UserID)
 	return err
 }

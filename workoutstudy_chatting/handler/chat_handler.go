@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/service"
 	"workoutstudy_chatting/util"
@@ -20,7 +22,7 @@ type ChatHandler struct {
 	FitGroupService service.FitGroupUseCase // 인터페이스 사용
 }
 
-func NewChatHandler(chatService *service.ChatService, fitMateService service.FitMateUseCase, fitGroupService service.FitGroupUseCase) *ChatHandler {
+func NewChatHandler(chatService service.ChatUseCase, fitMateService service.FitMateUseCase, fitGroupService service.FitGroupUseCase) *ChatHandler {
 	return &ChatHandler{
 		ChatService:     chatService,
 		FitMateService:  fitMateService,
@@ -34,21 +36,28 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+type Client struct {
+	conn   *websocket.Conn
+	userID int
+}
+
 type Room struct {
-	clients       map[*websocket.Conn]bool
+	clients       map[*websocket.Conn]int // 사용자 ID를 저장
 	broadcast     chan model.ChatMessage
-	register      chan *websocket.Conn
-	unregister    chan *websocket.Conn
+	register      chan Client
+	unregister    chan Client
 	fitGroupIDStr string
+	activeUsers   map[int]bool // 현재 채팅방에 접속한 사용자 ID를 저장
 }
 
 func NewRoom(fitGroupIDStr string) *Room {
 	return &Room{
 		broadcast:     make(chan model.ChatMessage),
-		register:      make(chan *websocket.Conn),
-		unregister:    make(chan *websocket.Conn),
-		clients:       make(map[*websocket.Conn]bool),
+		register:      make(chan Client),
+		unregister:    make(chan Client),
+		clients:       make(map[*websocket.Conn]int),
 		fitGroupIDStr: fitGroupIDStr,
+		activeUsers:   make(map[int]bool),
 	}
 }
 
@@ -56,11 +65,13 @@ func (r *Room) run() {
 	for {
 		select {
 		case client := <-r.register:
-			r.clients[client] = true
+			r.clients[client.conn] = client.userID
+			r.activeUsers[client.userID] = true
 		case client := <-r.unregister:
-			if _, ok := r.clients[client]; ok {
-				delete(r.clients, client)
-				client.Close()
+			if userID, ok := r.clients[client.conn]; ok {
+				delete(r.clients, client.conn)
+				delete(r.activeUsers, userID)
+				client.conn.Close()
 				if len(r.clients) == 0 {
 					roomLock.Lock()
 					delete(rooms, r.fitGroupIDStr)
@@ -69,12 +80,15 @@ func (r *Room) run() {
 				}
 			}
 		case message := <-r.broadcast:
-			for client := range r.clients {
-				err := client.WriteJSON(message)
-				if err != nil {
-					log.Printf("error: %v", err)
-					client.Close()
-					delete(r.clients, client)
+			for conn, userID := range r.clients {
+				if userID != message.UserID {
+					err := conn.WriteJSON(message)
+					if err != nil {
+						log.Printf("error: %v", err)
+						conn.Close()
+						delete(r.clients, conn)
+						delete(r.activeUsers, userID)
+					}
 				}
 			}
 		}
@@ -94,6 +108,7 @@ var (
 // @Accept json
 // @Produce json
 // @Param fitGroupId query int true "채팅방 연결을 위한 피트그룹 ID"
+// @Param userId query int true "사용자 ID"
 // @Success 101 {string} string "WebSocket 연결이 성공적으로 설정되었습니다."
 // @Router /chat [get]
 func (h *ChatHandler) Chat(c *gin.Context) {
@@ -115,9 +130,17 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	room.register <- conn
+	// 클라이언트로부터 사용자 ID를 얻어오는 로직
+	userIDStr := c.Query("userId")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		log.Printf("Invalid user ID: %v", err)
+		return
+	}
 
-	// 클라이언트로부터 메시지를 읽고 room의 broadcast 채널에 전달하는 로직...
+	client := Client{conn: conn, userID: userID}
+	room.register <- client
+
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -126,7 +149,6 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 		}
 
 		var chatMsg model.ChatMessage
-		log.Printf("received message: %s", chatMsg.Message)
 		if err := json.Unmarshal(message, &chatMsg); err != nil {
 			log.Printf("unmarshal error: %v", err)
 			continue
@@ -146,8 +168,40 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 			}
 			continue
 		}
+
+		// 현재 접속해 있지 않은 사용자에게 푸시 알림을 보냅니다.
+		roomLock.Lock()
+		for id := range room.activeUsers {
+			if id != chatMsg.UserID {
+				go sendWebhook(chatMsg, id)
+			}
+		}
+		roomLock.Unlock()
 	}
-	room.unregister <- conn
+	room.unregister <- client
+}
+
+func sendWebhook(chatMsg model.ChatMessage, userID int) {
+	webhookURL := "http://alarm-service:8080/chat/real-time-chat"
+	jsonData, err := json.Marshal(chatMsg)
+	if err != nil {
+		log.Printf("웹훅 요청을 위한 JSON 변환 실패: %v", err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", webhookURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Printf("웹훅 요청 생성 실패: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	_, err = client.Do(req)
+	if err != nil {
+		log.Printf("웹훅 요청 실패: %v", err)
+	}
+	// 응답을 무시하고 로그만 남김
 }
 
 // @Summary 최신 채팅 내역을 확인하고 동기화 하기 위한 API
