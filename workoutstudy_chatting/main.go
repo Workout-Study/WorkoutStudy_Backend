@@ -30,9 +30,6 @@ func main() {
 
 	r := gin.Default()
 
-	// 정적 파일 제공 설정
-	r.Static("/swagger", "./swagger")
-
 	// Swagger 라우트 설정
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
 
