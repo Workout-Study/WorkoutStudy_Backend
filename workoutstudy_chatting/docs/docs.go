@@ -35,6 +35,13 @@ const docTemplate = `{
                         "name": "fitGroupId",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "사용자 ID",
+                        "name": "userId",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -164,6 +171,9 @@ const docTemplate = `{
                 },
                 "messageType": {
                     "$ref": "#/definitions/model.MessageType"
+                },
+                "userId": {
+                    "type": "integer"
                 }
             }
         },
