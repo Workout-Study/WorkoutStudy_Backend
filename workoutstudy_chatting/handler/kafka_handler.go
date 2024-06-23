@@ -38,12 +38,16 @@ func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseC
 
 		switch msg.Topic {
 		case "fit-mate":
+			log.Printf("fit-mate 이벤트 컨슘: %s", string(msg.Value))
 			fitMateChannel <- msgEvent
 		case "fit-group":
+			log.Printf("fit-group 이벤트 컨슘: %s", string(msg.Value))
 			fitGroupChannel <- msgEvent
 		case "user-create-event":
+			log.Printf("user-create-event 이벤트 컨슘: %s", string(msg.Value))
 			userCreateEventChannel <- msgEvent
 		case "user-info":
+			log.Printf("user-info 이벤트 컨슘: %s", string(msg.Value))
 			userInfoEventChannel <- msgEvent
 		default:
 			fmt.Printf("No handler for topic %s\n", msg.Topic)
