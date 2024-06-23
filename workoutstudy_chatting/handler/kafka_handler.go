@@ -50,7 +50,7 @@ func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseC
 			log.Printf("user-info 이벤트 컨슘: %s", string(msg.Value))
 			userInfoEventChannel <- msgEvent
 		default:
-			fmt.Printf("No handler for topic %s\n", msg.Topic)
+			log.Printf("No handler for topic %s\n", msg.Topic)
 		}
 	}
 }

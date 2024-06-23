@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"workoutstudy_chatting/config"
 	"workoutstudy_chatting/handler"
 	"workoutstudy_chatting/persistence"
@@ -49,5 +50,6 @@ func main() {
 
 	go handler.HandleMessage(msgChan, fitMateService, fitGroupService, userService)
 
+	log.Println("Kafka Consumer and Handlers started")
 	r.Run(":8888")
 }
