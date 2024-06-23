@@ -48,7 +48,7 @@ func main() {
 	// go kafkaConsumer.Consume(ctx, msgChan)
 	// go handler.HandleMessage(msgChan, fitMateService, fitGroupService, userService)
 	// Kafka Consumer 설정 및 실행
-	kafkaConsumer := config.NewKafkaConsumer("kafka-1:9092", "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
+	kafkaConsumer := config.NewKafkaConsumer([]string{"kafka-1:9092", "kafka-2:9093", "kafka-3:9094"}, "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
 
 	// Kafka 메시지 소비 시작
 	go kafkaConsumer.Consume(fitMateService, fitGroupService, userService)
