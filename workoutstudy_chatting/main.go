@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"workoutstudy_chatting/config"
 	"workoutstudy_chatting/handler"
@@ -40,15 +39,19 @@ func main() {
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
 	r.GET("/retrieve/message", chatHandler.RetrieveMessages)
 
+	// // Kafka Consumer 설정 및 실행
+	// kafkaConsumer := config.NewKafkaConsumer("kafka-1:9092", "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
+	// // context 생성
+	// ctx := context.Background()
+	// msgChan := make(chan handler.MessageEvent)
+
+	// go kafkaConsumer.Consume(ctx, msgChan)
+	// go handler.HandleMessage(msgChan, fitMateService, fitGroupService, userService)
 	// Kafka Consumer 설정 및 실행
-	kafkaConsumer := config.NewKafkaConsumer("kafka-1:9092", "chatting-server-consumer", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
-	// context 생성
-	ctx := context.Background()
+	kafkaConsumer := config.NewKafkaConsumer("kafka-1:9092", "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
 
-	msgChan := make(chan handler.MessageEvent)
-	go kafkaConsumer.Consume(ctx, msgChan)
-
-	go handler.HandleMessage(msgChan, fitMateService, fitGroupService, userService)
+	// Kafka 메시지 소비 시작
+	go kafkaConsumer.Consume(fitMateService, fitGroupService, userService)
 
 	log.Println("Kafka Consumer and Handlers started")
 	r.Run(":8888")

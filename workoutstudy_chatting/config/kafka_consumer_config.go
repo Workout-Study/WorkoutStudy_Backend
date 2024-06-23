@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"workoutstudy_chatting/handler"
+	"workoutstudy_chatting/service"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -62,18 +63,47 @@ func checkKafkaConnection(bootstrapServers string) error {
 }
 
 // 메시지 Consume 메서드
-func (kc *KafkaConsumer) Consume(ctx context.Context, msgChan chan handler.MessageEvent) {
+// func (kc *KafkaConsumer) Consume(ctx context.Context, msgChan chan handler.MessageEvent) {
+// 	for topic, reader := range kc.Readers {
+// 		go func(topic string, r *kafka.Reader) {
+// 			log.Printf("Starting Kafka Consumer for topic: %s", topic) // 컨슈머 시작 로그 추가
+// 			for {
+// 				m, err := r.ReadMessage(ctx)
+// 				if err != nil {
+// 					log.Printf("Error reading message from topic %s: %v\n", topic, err)
+// 					break
+// 				}
+// 				log.Printf("Message received from topic %s: %s\n", topic, string(m.Value)) // 디버깅 로그 추가
+// 				msgChan <- handler.MessageEvent{Message: m, Service: nil}
+// 			}
+// 		}(topic, reader)
+// 	}
+// }
+
+// 메시지 Consume 메서드
+func (kc *KafkaConsumer) Consume(fitMateService service.FitMateUseCase, fitGroupService service.FitGroupUseCase, userService service.UserUseCase) {
 	for topic, reader := range kc.Readers {
 		go func(topic string, r *kafka.Reader) {
 			log.Printf("Starting Kafka Consumer for topic: %s", topic) // 컨슈머 시작 로그 추가
 			for {
-				m, err := r.ReadMessage(ctx)
+				m, err := r.ReadMessage(context.Background())
 				if err != nil {
 					log.Printf("Error reading message from topic %s: %v\n", topic, err)
 					break
 				}
 				log.Printf("Message received from topic %s: %s\n", topic, string(m.Value)) // 디버깅 로그 추가
-				msgChan <- handler.MessageEvent{Message: m, Service: nil}
+				switch topic {
+				case "fit-mate":
+					handler.HandleFitMateEvent(m, fitMateService)
+				case "fit-group":
+					handler.HandleFitGroupEvent(m, fitGroupService)
+				case "user-create-event":
+					handler.HandleUserCreateEvent(m, userService)
+				case "user-info":
+					handler.HandleUserInfoEvent(m, userService)
+				default:
+					log.Printf("No handler for topic %s\n", topic)
+				}
 			}
 		}(topic, reader)
 	}
