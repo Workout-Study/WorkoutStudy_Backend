@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"workoutstudy_chatting/handler"
@@ -15,6 +16,12 @@ type KafkaConsumer struct {
 
 // KafkaConsumer 생성자
 func NewKafkaConsumer(bootstrapServers string, groupID string, topics []string) *KafkaConsumer {
+	// Kafka 브로커에 명시적으로 연결 시도
+	if err := checkKafkaConnection(bootstrapServers); err != nil {
+		log.Fatalf("Failed to connect to Kafka broker at %s: %v", bootstrapServers, err)
+	}
+	log.Printf("Successfully connected to Kafka broker at %s", bootstrapServers)
+
 	readers := make(map[string]*kafka.Reader)
 	for _, topic := range topics {
 		reader := kafka.NewReader(kafka.ReaderConfig{
@@ -23,30 +30,36 @@ func NewKafkaConsumer(bootstrapServers string, groupID string, topics []string) 
 			Topic:    topic,
 			MinBytes: 10e3, // 10KB
 			MaxBytes: 10e6, // 10MB
+			// CommitInterval: time.Second,
 		})
 		readers[topic] = reader
 		log.Printf("Kafka Reader created for topic: %s", topic) // 토픽별 Kafka Reader 생성 로그 추가
-
-		// Kafka 브로커 연결 확인
-		// if err := checkKafkaConnection(reader); err != nil {
-		// 	log.Fatalf("Failed to connect to Kafka broker at %s: %v", bootstrapServers, err)
-		// }
-		// log.Printf("Successfully connected to Kafka broker at %s for topic %s", bootstrapServers, topic)
 	}
 	return &KafkaConsumer{
 		Readers: readers,
 	}
 }
 
-// // Kafka 브로커 연결 확인 함수
-// func checkKafkaConnection(reader *kafka.Reader) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
+// Kafka 브로커 연결 확인 함수
+func checkKafkaConnection(bootstrapServers string) error {
+	// Kafka 브로커에 연결 시도
+	conn, err := kafka.Dial("tcp", bootstrapServers)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
-// 	// 메시지 읽기 시도
-// 	_, err := reader.FetchMessage(ctx)
-// 	return err
-// }
+	// 연결 성공 시 파티션 정보를 가져와 확인 (명시적 확인)
+	partitions, err := conn.ReadPartitions()
+	if err != nil {
+		return fmt.Errorf("failed to read partitions: %w", err)
+	}
+	if len(partitions) == 0 {
+		return fmt.Errorf("no partitions found")
+	}
+
+	return nil
+}
 
 // 메시지 Consume 메서드
 func (kc *KafkaConsumer) Consume(ctx context.Context, msgChan chan handler.MessageEvent) {
