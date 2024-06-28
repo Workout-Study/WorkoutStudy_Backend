@@ -16,7 +16,7 @@ import (
 
 type MessageEvent struct {
 	Message kafka.Message
-	Service interface{}
+	Topic   string
 }
 
 func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseCase, fitGroupService service.FitGroupUseCase, userService service.UserUseCase) {
@@ -35,8 +35,9 @@ func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseC
 
 	for msgEvent := range msgChan {
 		msg := msgEvent.Message
+		topic := msgEvent.Topic
 
-		switch msg.Topic {
+		switch topic {
 		case "fit-mate":
 			log.Printf("fit-mate 이벤트 컨슘: %s", string(msg.Value))
 			fitMateChannel <- msgEvent
@@ -47,10 +48,10 @@ func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseC
 			log.Printf("user-create-event 이벤트 컨슘: %s", string(msg.Value))
 			userCreateEventChannel <- msgEvent
 		case "user-info":
-			log.Printf("user-info 이벤트 컨슘: %s", string(msg.Value))
+			log.Printf("user-info-event 이벤트 컨슘: %s", string(msg.Value))
 			userInfoEventChannel <- msgEvent
 		default:
-			log.Printf("No handler for topic %s\n", msg.Topic)
+			log.Printf("No handler for topic %s\n", topic)
 		}
 	}
 }
@@ -108,23 +109,17 @@ func FitGroupHandler(c chan MessageEvent, fgService service.FitGroupUseCase, fit
 			continue
 		}
 
-		// 익명함수를 사용해서 response.Body.Close()를 defer로 사용하지 않고 명시적으로 호출
-		// 익명함수를 선언하고 그 안에서 defer reseponse.Body.Close()를 호출
-		// 이렇게 하면 response.Body.Close()가 호출되는 시점을 명확히 알 수 있음
-		// API를 호출해서 데이터를 받아온 후, 자원 해제 -> 그 후에 데이터에 대한 처리 수행
-		func() {
-			defer response.Body.Close()
+		defer response.Body.Close()
 
-			var apiResponse model.GetFitGroupDetailApiResponse
-			if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
-				log.Printf("Error decoding API response: %v\n", err)
-				return
-			}
+		var apiResponse model.GetFitGroupDetailApiResponse
+		if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
+			log.Printf("Error decoding API response: %v\n", err)
+			return
+		}
 
-			if err := fgService.HandleFitGroupEvent(apiResponse, fitGroupEvents); err != nil {
-				log.Printf("Error handling fit group event: %v\n", err)
-			}
-		}()
+		if err := fgService.HandleFitGroupEvent(apiResponse, fitGroupEvents); err != nil {
+			log.Printf("Error handling fit group event: %v\n", err)
+		}
 	}
 }
 
@@ -160,18 +155,16 @@ func UserInfoHandler(c chan MessageEvent, userService service.UserUseCase) {
 			continue
 		}
 
-		func() {
-			defer response.Body.Close()
+		defer response.Body.Close()
 
-			var apiResponse model.GetUserInfoApiResponse
-			if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
-				log.Printf("Error decoding API response: %v\n", err)
-				return
-			}
+		var apiResponse model.GetUserInfoApiResponse
+		if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
+			log.Printf("Error decoding API response: %v\n", err)
+			return
+		}
 
-			if err := userService.HandleUserInfoEvent(apiResponse); err != nil {
-				log.Printf("Error handling user info event: %v\n", err)
-			}
-		}()
+		if err := userService.HandleUserInfoEvent(apiResponse); err != nil {
+			log.Printf("Error handling user info event: %v\n", err)
+		}
 	}
 }

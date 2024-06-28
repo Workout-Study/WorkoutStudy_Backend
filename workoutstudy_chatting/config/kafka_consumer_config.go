@@ -4,9 +4,7 @@ import (
 	"context"
 	"log"
 	"time"
-
 	"workoutstudy_chatting/handler"
-	"workoutstudy_chatting/service"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -25,7 +23,7 @@ func NewKafkaConsumer(bootstrapServers []string, groupID string, topics []string
 			Topic:          topic,
 			MinBytes:       10e3, // 10KB
 			MaxBytes:       10e6, // 10MB
-			CommitInterval: time.Second,
+			CommitInterval: 0,    // 자동 커밋 비활성화
 		})
 		readers[topic] = reader
 		log.Printf("Kafka Reader created for topic: %s", topic)
@@ -36,7 +34,7 @@ func NewKafkaConsumer(bootstrapServers []string, groupID string, topics []string
 }
 
 // 메시지 Consume 메서드
-func (kc *KafkaConsumer) Consume(ctx context.Context, fitMateService service.FitMateUseCase, fitGroupService service.FitGroupUseCase, userService service.UserUseCase) {
+func (kc *KafkaConsumer) Consume(ctx context.Context, msgChan chan handler.MessageEvent) {
 	for topic, reader := range kc.Readers {
 		go func(topic string, r *kafka.Reader) {
 			log.Printf("Starting Kafka Consumer for topic: %s", topic)
@@ -51,18 +49,9 @@ func (kc *KafkaConsumer) Consume(ctx context.Context, fitMateService service.Fit
 					continue
 				}
 				log.Printf("Message received from topic %s: %s\n", topic, string(m.Value))
-				switch topic {
-				case "fit-mate":
-					handler.HandleFitMateEvent(m, fitMateService)
-				case "fit-group":
-					handler.HandleFitGroupEvent(m, fitGroupService)
-				case "user-create-event":
-					handler.HandleUserCreateEvent(m, userService)
-				case "user-info":
-					handler.HandleUserInfoEvent(m, userService)
-				default:
-					log.Printf("No handler for topic %s\n", topic)
-				}
+				msgChan <- handler.MessageEvent{Message: m, Topic: topic}
+
+				// 명시적으로 커밋
 				if err := r.CommitMessages(ctx, m); err != nil {
 					log.Printf("Failed to commit message for topic %s: %v\n", topic, err)
 				}

@@ -37,12 +37,17 @@ func main() {
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
 	r.GET("/retrieve/message", chatHandler.RetrieveMessages)
 
-	kafkaConsumer := config.NewKafkaConsumer([]string{"kafka-1:9092", "kafka-2:9093", "kafka-3:9094"}, "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info"})
+	msgChan := make(chan handler.MessageEvent)
+
+	kafkaConsumer := config.NewKafkaConsumer([]string{"kafka-1:9092", "kafka-2:9093", "kafka-3:9094"}, "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info-event"})
 
 	ctx, cancel := context.WithCancel(context.Background())
+	log.Println("Context created for Kafka consumer")
 
-	go kafkaConsumer.Consume(ctx, fitMateService, fitGroupService, userService)
+	go kafkaConsumer.Consume(ctx, msgChan)
 
+	go handler.HandleMessage(msgChan, fitMateService, fitGroupService, userService)
+	// Graceful shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
