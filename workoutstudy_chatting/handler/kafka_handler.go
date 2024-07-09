@@ -56,43 +56,43 @@ func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseC
 	}
 }
 
-func FitMateHandler(c chan MessageEvent, fitMateService service.FitMateUseCase, fitGroupEvents chan int) {
-	for event := range c {
-		msg := event.Message
-		value, err := strconv.Atoi(string(msg.Value))
-		if err != nil {
-			log.Printf("Error converting Kafka message to int: %v\n", err)
-			continue
-		}
+// func FitMateHandler(c chan MessageEvent, fitMateService service.FitMateUseCase, fitGroupEvents chan int) {
+// 	for event := range c {
+// 		msg := event.Message
+// 		value, err := strconv.Atoi(string(msg.Value))
+// 		if err != nil {
+// 			log.Printf("Error converting Kafka message to int: %v\n", err)
+// 			continue
+// 		}
 
-		url := fmt.Sprintf("http://fit-group:8080/fit-group-service/mates/%d", value)
-		response, err := http.Get(url)
-		if err != nil {
-			log.Printf("Error sending GET request: %v\n", err)
-			continue
-		}
+// 		url := fmt.Sprintf("http://fit-group:8080/fit-group-service/mates/%d", value)
+// 		response, err := http.Get(url)
+// 		if err != nil {
+// 			log.Printf("Error sending GET request: %v\n", err)
+// 			continue
+// 		}
 
-		func() {
-			defer response.Body.Close()
+// 		func() {
+// 			defer response.Body.Close()
 
-			body, err := io.ReadAll(response.Body)
-			if err != nil {
-				log.Printf("Error reading response body: %v\n", err)
-				return
-			}
+// 			body, err := io.ReadAll(response.Body)
+// 			if err != nil {
+// 				log.Printf("Error reading response body: %v\n", err)
+// 				return
+// 			}
 
-			var apiResponse model.GetFitMatesApiResponse
-			if err := json.Unmarshal(body, &apiResponse); err != nil {
-				log.Printf("Error unmarshalling API response: %v\n", err)
-				return
-			}
+// 			var apiResponse model.GetFitMatesApiResponse
+// 			if err := json.Unmarshal(body, &apiResponse); err != nil {
+// 				log.Printf("Error unmarshalling API response: %v\n", err)
+// 				return
+// 			}
 
-			if err := fitMateService.HandleFitMateEvent(apiResponse, fitGroupEvents); err != nil {
-				log.Printf("Error handling fit mate event: %v\n", err)
-			}
-		}()
-	}
-}
+// 			if err := fitMateService.HandleFitMateEvent(apiResponse, fitGroupEvents); err != nil {
+// 				log.Printf("Error handling fit mate event: %v\n", err)
+// 			}
+// 		}()
+// 	}
+// }
 
 func FitGroupHandler(c chan MessageEvent, fgService service.FitGroupUseCase, fitGroupEvents chan int) {
 	for event := range c {
@@ -102,24 +102,28 @@ func FitGroupHandler(c chan MessageEvent, fgService service.FitGroupUseCase, fit
 			log.Printf("Error converting Kafka message to int: %v\n", err)
 			continue
 		}
-		url := fmt.Sprintf("http://fit-group:8080/fit-group-service/groups/%d", value)
-		response, err := http.Get(url)
-		if err != nil {
-			log.Printf("Error sending GET request: %v\n", err)
-			continue
-		}
 
-		defer response.Body.Close()
+		handleFitGroupEvent(value, fgService, fitGroupEvents)
+	}
+}
 
-		var apiResponse model.GetFitGroupDetailApiResponse
-		if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
-			log.Printf("Error decoding API response: %v\n", err)
-			return
-		}
+func handleFitGroupEvent(value int, fgService service.FitGroupUseCase, fitGroupEvents chan int) {
+	url := fmt.Sprintf("http://fit-group:8080/fit-group-service/groups/%d", value)
+	response, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error sending GET request: %v\n", err)
+		return
+	}
+	defer response.Body.Close()
 
-		if err := fgService.HandleFitGroupEvent(apiResponse, fitGroupEvents); err != nil {
-			log.Printf("Error handling fit group event: %v\n", err)
-		}
+	var apiResponse model.GetFitGroupDetailApiResponse
+	if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
+		log.Printf("Error decoding API response: %v\n", err)
+		return
+	}
+
+	if err := fgService.HandleFitGroupEvent(apiResponse, fitGroupEvents); err != nil {
+		log.Printf("Error handling fit group event: %v\n", err)
 	}
 }
 
@@ -134,9 +138,13 @@ func UserCreateEventHandler(c chan MessageEvent, userService service.UserUseCase
 			continue
 		}
 
-		if err := userService.HandleUserCreateEvent(&userCreateEvent); err != nil {
-			log.Printf("Error handling user creation process: %v\n", err)
-		}
+		handleUserCreateEvent(userCreateEvent, userService)
+	}
+}
+
+func handleUserCreateEvent(userCreateEvent model.UserCreateEvent, userService service.UserUseCase) {
+	if err := userService.HandleUserCreateEvent(&userCreateEvent); err != nil {
+		log.Printf("Error handling user creation process: %v\n", err)
 	}
 }
 
@@ -148,23 +156,66 @@ func UserInfoHandler(c chan MessageEvent, userService service.UserUseCase) {
 			log.Printf("Error converting Kafka message to int: %v\n", err)
 			continue
 		}
-		url := fmt.Sprintf("http://auth-service:8080/user/user-info?userId=%d", value)
-		response, err := http.Get(url)
+
+		handleUserInfoEvent(value, userService)
+	}
+}
+
+func handleUserInfoEvent(value int, userService service.UserUseCase) {
+	url := fmt.Sprintf("http://auth-service:8080/user/user-info?userId=%d", value)
+	response, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error sending GET request: %v\n", err)
+		return
+	}
+	defer response.Body.Close()
+
+	var apiResponse model.GetUserInfoApiResponse
+	if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
+		log.Printf("Error decoding API response: %v\n", err)
+		return
+	}
+
+	if err := userService.HandleUserInfoEvent(apiResponse); err != nil {
+		log.Printf("Error handling user info event: %v\n", err)
+	}
+}
+
+func FitMateHandler(c chan MessageEvent, fitMateService service.FitMateUseCase, fitGroupEvents chan int) {
+	for event := range c {
+		msg := event.Message
+		value, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			log.Printf("Error sending GET request: %v\n", err)
+			log.Printf("Error converting Kafka message to int: %v\n", err)
 			continue
 		}
 
-		defer response.Body.Close()
+		handleFitMateEvent(value, fitMateService, fitGroupEvents)
+	}
+}
 
-		var apiResponse model.GetUserInfoApiResponse
-		if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
-			log.Printf("Error decoding API response: %v\n", err)
-			return
-		}
+func handleFitMateEvent(value int, fitMateService service.FitMateUseCase, fitGroupEvents chan int) {
+	url := fmt.Sprintf("http://fit-group:8080/fit-group-service/mates/%d", value)
+	response, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error sending GET request: %v\n", err)
+		return
+	}
+	defer response.Body.Close()
 
-		if err := userService.HandleUserInfoEvent(apiResponse); err != nil {
-			log.Printf("Error handling user info event: %v\n", err)
-		}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v\n", err)
+		return
+	}
+
+	var apiResponse model.GetFitMatesApiResponse
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		log.Printf("Error unmarshalling API response: %v\n", err)
+		return
+	}
+
+	if err := fitMateService.HandleFitMateEvent(apiResponse, fitGroupEvents); err != nil {
+		log.Printf("Error handling fit mate event: %v\n", err)
 	}
 }
