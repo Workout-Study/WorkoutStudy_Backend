@@ -39,7 +39,7 @@ func main() {
 
 	msgChan := make(chan handler.MessageEvent)
 
-	kafkaConsumer := config.NewKafkaConsumer([]string{"kafka-1:9092", "kafka-2:9093", "kafka-3:9094"}, "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info-event"})
+	kafkaConsumer := config.NewKafkaConsumer([]string{"kafka-1:9092" /*, "kafka-2:9093", "kafka-3:9094"*/}, "chatting-service", []string{"fit-mate", "fit-group", "user-create-event", "user-info-event"})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	log.Println("Context created for Kafka consumer")
