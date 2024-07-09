@@ -45,9 +45,7 @@ func InitializeDB() *sql.DB {
 			nickname VARCHAR(10) NOT NULL,
 			state BOOLEAN DEFAULT false NOT NULL,
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-			created_by VARCHAR(30),
-			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-			updated_by VARCHAR(30)
+			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS fit_group (
 			id INTEGER PRIMARY KEY,

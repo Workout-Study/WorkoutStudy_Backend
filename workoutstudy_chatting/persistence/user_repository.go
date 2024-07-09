@@ -25,9 +25,9 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (repo *UserRepositoryImpl) SaveUser(user *model.User) (*model.User, error) {
-	query := `INSERT INTO user (id, nickname, state, created_at, created_by, updated_at, updated_by) VALUES ($1, $2, $3, NOW(), $4, NOW(), $5) RETURNING id`
+	query := `INSERT INTO "user" (id, nickname, state, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.CreatedAt, user.Nickname, user.UpdatedAt, user.Nickname).Scan(&user.ID)
+	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
 	if err != nil {
 		log.Printf("Error saving user: %v", err)
 		return nil, fmt.Errorf("error saving user: %w", err)
@@ -36,10 +36,10 @@ func (repo *UserRepositoryImpl) SaveUser(user *model.User) (*model.User, error) 
 }
 
 func (repo *UserRepositoryImpl) UpdateUser(user *model.User) (*model.User, error) {
-	query := `UPDATE user SET nickname = $2, state = $3, updated_at = $4, updated_by = $5 WHERE id = $1 RETURNING id`
+	query := `UPDATE user SET nickname = $2, state = $3, updated_at = $4 WHERE id = $1 RETURNING id`
 
 	// 쿼리 실행
-	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.UpdatedAt, user.Nickname).Scan(&user.ID)
+	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.UpdatedAt).Scan(&user.ID)
 	if err != nil {
 		log.Printf("Error updating user: %v", err)
 		return nil, fmt.Errorf("error updating user: %w", err)
