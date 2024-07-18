@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -137,6 +138,16 @@ func (s *FitMateService) HandleFitMateEvent(apiResponse model.GetFitMatesApiResp
 			log.Printf("Proceeding with FitGroup ID %d", fitGroupID)
 		case <-timeout:
 			log.Printf("Timeout waiting for FitGroup ID %d", apiResponse.FitGroupId)
+			// 10초 후 DB 재조회
+			fitGroupExists, err = s.repo.CheckFitGroupExists(apiResponse.FitGroupId)
+			if err != nil {
+				log.Printf("Error checking fit group existence after timeout: %v", err)
+				return err
+			}
+			if !fitGroupExists {
+				log.Printf("FitGroup ID %d not found after 10 seconds", apiResponse.FitGroupId)
+				return fmt.Errorf("fitGroup ID %d not found after 10 seconds", apiResponse.FitGroupId)
+			}
 		}
 	}
 
