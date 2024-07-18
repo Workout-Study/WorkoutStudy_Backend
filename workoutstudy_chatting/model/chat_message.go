@@ -17,6 +17,7 @@ const (
 // ChatMessage는 채팅 메시지를 나타내는 구조체입니다.
 type ChatMessage struct {
 	ID          string      `json:"messageId"`
+	UserID      int         `json:"userId"`
 	FitGroupID  int         `json:"fitGroupId"`
 	FitMateID   int         `json:"fitMateId"`
 	Message     string      `json:"message"`
