@@ -43,6 +43,7 @@ type Mate struct {
 type GetUserInfoApiResponse struct {
 	UserID    int       `json:"userId"`
 	Nickname  string    `json:"nickname"`
+	ImageUrl  string    `json:"imageUrl"`
 	State     bool      `json:"state"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

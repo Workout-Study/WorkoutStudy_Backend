@@ -40,10 +40,11 @@ func InitializeDB() *sql.DB {
 	fmt.Println("Database connection pool initialized successfully")
 
 	createTables := []string{
-		`CREATE TABLE IF NOT EXISTS "user" (
+		`CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
-			nickname VARCHAR(10) NOT NULL,
+			nickname VARCHAR(10),
 			state BOOLEAN DEFAULT false NOT NULL,
+			image_url VARCHAR(255) NOT NULL,
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL
 		)`,

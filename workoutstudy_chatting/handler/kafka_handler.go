@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/service"
@@ -26,7 +27,7 @@ func HandleMessage(msgChan chan MessageEvent, fitMateService service.FitMateUseC
 	userInfoEventChannel := make(chan MessageEvent)
 
 	// fitGroupEvents 채널 생성
-	fitGroupEvents := make(chan int, 1) // 비동기 이벤트 알림을 위해 채널 사용
+	fitGroupEvents := make(chan int, 1) // 비동기 이벤트 알림을 위해 채널 사용, 버퍼 크기가 1
 
 	go FitMateHandler(fitMateChannel, fitMateService, fitGroupEvents)
 	go FitGroupHandler(fitGroupChannel, fitGroupService, fitGroupEvents)
@@ -127,60 +128,6 @@ func handleFitGroupEvent(value int, fgService service.FitGroupUseCase, fitGroupE
 	}
 }
 
-func UserCreateEventHandler(c chan MessageEvent, userService service.UserUseCase) {
-	for event := range c {
-		msg := event.Message
-
-		var userCreateEvent model.UserCreateEvent
-
-		if err := json.Unmarshal(msg.Value, &userCreateEvent); err != nil {
-			log.Printf("Error unmarshalling message: %v\n", err)
-			continue
-		}
-
-		handleUserCreateEvent(userCreateEvent, userService)
-	}
-}
-
-func handleUserCreateEvent(userCreateEvent model.UserCreateEvent, userService service.UserUseCase) {
-	if err := userService.HandleUserCreateEvent(&userCreateEvent); err != nil {
-		log.Printf("Error handling user creation process: %v\n", err)
-	}
-}
-
-func UserInfoHandler(c chan MessageEvent, userService service.UserUseCase) {
-	for event := range c {
-		msg := event.Message
-		value, err := strconv.Atoi(string(msg.Value))
-		if err != nil {
-			log.Printf("Error converting Kafka message to int: %v\n", err)
-			continue
-		}
-
-		handleUserInfoEvent(value, userService)
-	}
-}
-
-func handleUserInfoEvent(value int, userService service.UserUseCase) {
-	url := fmt.Sprintf("http://auth-service:8080/user/user-info?userId=%d", value)
-	response, err := http.Get(url)
-	if err != nil {
-		log.Printf("Error sending GET request: %v\n", err)
-		return
-	}
-	defer response.Body.Close()
-
-	var apiResponse model.GetUserInfoApiResponse
-	if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
-		log.Printf("Error decoding API response: %v\n", err)
-		return
-	}
-
-	if err := userService.HandleUserInfoEvent(apiResponse); err != nil {
-		log.Printf("Error handling user info event: %v\n", err)
-	}
-}
-
 func FitMateHandler(c chan MessageEvent, fitMateService service.FitMateUseCase, fitGroupEvents chan int) {
 	for event := range c {
 		msg := event.Message
@@ -217,5 +164,73 @@ func handleFitMateEvent(value int, fitMateService service.FitMateUseCase, fitGro
 
 	if err := fitMateService.HandleFitMateEvent(apiResponse, fitGroupEvents); err != nil {
 		log.Printf("Error handling fit mate event: %v\n", err)
+	}
+}
+
+func UserCreateEventHandler(c chan MessageEvent, userService service.UserUseCase) {
+	for event := range c {
+		msg := event.Message
+
+		var userCreateEvent model.UserCreateEvent
+
+		if err := json.Unmarshal(msg.Value, &userCreateEvent); err != nil {
+			log.Printf("Error unmarshalling message: %v\n", err)
+			continue
+		}
+
+		handleUserCreateEvent(userCreateEvent, userService)
+	}
+}
+
+func handleUserCreateEvent(userCreateEvent model.UserCreateEvent, userService service.UserUseCase) {
+	createdAtInt, err := strconv.ParseInt(userCreateEvent.CreatedAt, 10, 64)
+	if err != nil {
+		log.Printf("Error parsing CreatedAt: %v\n", err)
+		return
+	}
+	updatedAtInt, err := strconv.ParseInt(userCreateEvent.UpdatedAt, 10, 64)
+	if err != nil {
+		log.Printf("Error parsing UpdatedAt: %v\n", err)
+		return
+	}
+
+	userCreateEvent.CreatedAt = time.Unix(0, createdAtInt*int64(time.Millisecond)).Format(time.RFC3339)
+	userCreateEvent.UpdatedAt = time.Unix(0, updatedAtInt*int64(time.Millisecond)).Format(time.RFC3339)
+
+	if err := userService.HandleUserCreateEvent(&userCreateEvent); err != nil {
+		log.Printf("Error handling user creation process: %v\n", err)
+	}
+}
+
+func UserInfoHandler(c chan MessageEvent, userService service.UserUseCase) {
+	for event := range c {
+		msg := event.Message
+		value, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			log.Printf("Error converting Kafka message to int: %v\n", err)
+			continue
+		}
+
+		handleUserInfoEvent(value, userService)
+	}
+}
+
+func handleUserInfoEvent(value int, userService service.UserUseCase) {
+	url := fmt.Sprintf("http://auth-service:8080/user/user-info?userId=%d", value)
+	response, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error sending GET request: %v\n", err)
+		return
+	}
+	defer response.Body.Close()
+
+	var apiResponse model.GetUserInfoApiResponse
+	if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
+		log.Printf("Error decoding API response: %v\n", err)
+		return
+	}
+
+	if err := userService.HandleUserInfoEvent(apiResponse); err != nil {
+		log.Printf("Error handling user info event: %v\n", err)
 	}
 }

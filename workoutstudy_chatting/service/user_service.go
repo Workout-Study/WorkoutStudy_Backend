@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"log"
+	"time"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
@@ -56,16 +57,28 @@ func (s *UserService) GetUserByID(userID int) (*model.Users, error) {
 
 // Create
 func (s *UserService) HandleUserCreateEvent(userCreateEvent *model.UserCreateEvent) error {
+	createdAt, err := time.Parse(time.RFC3339, userCreateEvent.CreatedAt)
+	if err != nil {
+		log.Printf("Error parsing CreatedAt: %v\n", err)
+		return fmt.Errorf("error parsing CreatedAt: %w", err)
+	}
+
+	updatedAt, err := time.Parse(time.RFC3339, userCreateEvent.UpdatedAt)
+	if err != nil {
+		log.Printf("Error parsing UpdatedAt: %v\n", err)
+		return fmt.Errorf("error parsing UpdatedAt: %w", err)
+	}
+
 	user := &model.Users{
 		ID:        userCreateEvent.UserID,
 		Nickname:  userCreateEvent.Nickname,
 		State:     userCreateEvent.State,
 		ImageUrl:  userCreateEvent.ImageUrl,
-		CreatedAt: userCreateEvent.CreatedAt,
-		UpdatedAt: userCreateEvent.UpdatedAt,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
 	}
 
-	_, err := s.repo.SaveUser(user)
+	_, err = s.repo.SaveUser(user)
 	if err != nil {
 		log.Printf("Error handling user create event: %v", err)
 		return fmt.Errorf("error handling user create event: %w", err)
@@ -81,6 +94,7 @@ func (s *UserService) HandleUserInfoEvent(apiResponse model.GetUserInfoApiRespon
 		ID:        apiResponse.UserID,
 		Nickname:  apiResponse.Nickname,
 		State:     apiResponse.State,
+		ImageUrl:  apiResponse.ImageUrl,
 		CreatedAt: apiResponse.CreatedAt,
 		UpdatedAt: apiResponse.UpdatedAt,
 	}
