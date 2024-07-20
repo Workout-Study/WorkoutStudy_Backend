@@ -23,7 +23,7 @@ func NewChatService(repo persistence.ChatRepository) *ChatService {
 }
 
 /*
-RetrieveMesaage
+RetrieveMesaages
 1. message 테이블에서 최신 채팅 조회
 2. 조회된 message 의 messageId와 요청의 messageId 비교
 3-a. 두 messageId 가 일치할 시 최신 채팅만 반환

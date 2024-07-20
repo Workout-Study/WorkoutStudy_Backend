@@ -40,6 +40,7 @@ func (repo *ChatRepositoryImpl) RetrieveMessage(fitGroupID int) (int, error) {
 	}
 	return messageID, nil
 }
+
 func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time) ([]model.ChatMessage, error) {
 	query := `
     SELECT message_id, user_id, fit_group_id, message, message_time, message_type
@@ -58,7 +59,7 @@ func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time
 	var messages []model.ChatMessage
 	for rows.Next() {
 		var msg model.ChatMessage
-		if err := rows.Scan(&msg.ID, &msg.FitGroupID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.UserID, &msg.FitGroupID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)
@@ -88,7 +89,7 @@ func (repo *ChatRepositoryImpl) RetrieveMessagesInRange(fitGroupID int, start, e
 	var messages []model.ChatMessage
 	for rows.Next() {
 		var msg model.ChatMessage
-		if err := rows.Scan(&msg.ID, &msg.FitGroupID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.UserID, &msg.FitGroupID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)
