@@ -25,7 +25,7 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (repo *UserRepositoryImpl) SaveUser(user *model.Users) (*model.Users, error) {
-	query := `INSERT INTO users (id, nickname, state, image_url,created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO users (id, nickname, state, image_url, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.ImageUrl, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
 	if err != nil {
