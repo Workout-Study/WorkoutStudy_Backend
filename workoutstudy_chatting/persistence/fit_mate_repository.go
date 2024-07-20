@@ -29,7 +29,7 @@ func NewPostgresFitMateRepository(db *sql.DB) *PostgresFitMateRepository {
 
 func (repo *PostgresFitMateRepository) GetFitGroupsByUserID(userID int) ([]model.FitGroup, error) {
 	query := `
-	SELECT fg.id, fg.fit_group_name, fg.category, fg.cycle, fg.frequency, fg.present_fit_mate_count, fg.max_fit_mate, fg.created_at, fg.created_by, fg.updated_at, fg.updated_by
+	SELECT fg.id, fg.fit_leader_user_id, fg.fit_group_name, fg.category, fg.cycle, fg.frequency, fg.present_fit_mate_count, fg.max_fit_mate, fg.created_at, fg.created_by, fg.updated_at, fg.updated_by
 	FROM fit_group fg
 	INNER JOIN fit_mate fm ON fg.id = fm.fit_group_id
 	WHERE fm.user_id = $1
@@ -45,7 +45,7 @@ func (repo *PostgresFitMateRepository) GetFitGroupsByUserID(userID int) ([]model
 	var fitGroups []model.FitGroup
 	for rows.Next() {
 		var fg model.FitGroup
-		if err := rows.Scan(&fg.ID, &fg.FitGroupName, &fg.Category, &fg.Cycle, &fg.Frequency, &fg.PresentFitMateCount, &fg.MaxFitMate, &fg.CreatedAt, &fg.CreatedBy, &fg.UpdatedAt, &fg.UpdatedBy); err != nil {
+		if err := rows.Scan(&fg.ID, &fg.FitLeaderUserID, &fg.FitGroupName, &fg.Category, &fg.Cycle, &fg.Frequency, &fg.PresentFitMateCount, &fg.MaxFitMate, &fg.CreatedAt, &fg.CreatedBy, &fg.UpdatedAt, &fg.UpdatedBy); err != nil {
 			log.Printf("Error scanning fit group: %v", err)
 			continue // or return an error; depends on your error handling strategy
 		}
