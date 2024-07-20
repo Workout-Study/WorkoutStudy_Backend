@@ -6,6 +6,7 @@ type UserCreateEvent struct {
 	UserID    int       `json:"userId"`
 	Nickname  string    `json:"nickname"`
 	State     bool      `json:"state"`
+	ImageUrl  string    `json:"imageUrl"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

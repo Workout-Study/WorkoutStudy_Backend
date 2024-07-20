@@ -2,12 +2,11 @@ package model
 
 import "time"
 
-type User struct {
+type Users struct {
 	ID        int
 	Nickname  string
 	State     bool
+	ImageUrl  string
 	CreatedAt time.Time
-	CreatedBy string
 	UpdatedAt time.Time
-	UpdatedBy string
 }

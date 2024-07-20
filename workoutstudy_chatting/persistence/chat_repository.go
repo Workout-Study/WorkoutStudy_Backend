@@ -58,7 +58,7 @@ func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time
 	var messages []model.ChatMessage
 	for rows.Next() {
 		var msg model.ChatMessage
-		if err := rows.Scan(&msg.ID, &msg.FitGroupID, &msg.FitMateID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.FitGroupID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)
@@ -88,7 +88,7 @@ func (repo *ChatRepositoryImpl) RetrieveMessagesInRange(fitGroupID int, start, e
 	var messages []model.ChatMessage
 	for rows.Next() {
 		var msg model.ChatMessage
-		if err := rows.Scan(&msg.ID, &msg.FitGroupID, &msg.FitMateID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.FitGroupID, &msg.Message, &msg.MessageTime, &msg.MessageType); err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)

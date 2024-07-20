@@ -8,10 +8,10 @@ import (
 )
 
 type UserUseCase interface {
-	SaveUser(user *model.User) (*model.User, error)
-	UpdateUser(user *model.User) (*model.User, error)
+	SaveUser(user *model.Users) (*model.Users, error)
+	UpdateUser(user *model.Users) (*model.Users, error)
 	DeleteUser(userID int) error
-	GetUserByID(userID int) (*model.User, error)
+	GetUserByID(userID int) (*model.Users, error)
 	HandleUserCreateEvent(user *model.UserCreateEvent) error
 	HandleUserInfoEvent(apiResponse model.GetUserInfoApiResponse) error
 }
@@ -38,11 +38,11 @@ func NewUserService(repo persistence.UserRepository) *UserService {
 	// 실제 return 문에서 UserService 의 메모리 주소를 반환
 }
 
-func (s *UserService) SaveUser(user *model.User) (*model.User, error) {
+func (s *UserService) SaveUser(user *model.Users) (*model.Users, error) {
 	return s.repo.SaveUser(user)
 }
 
-func (s *UserService) UpdateUser(user *model.User) (*model.User, error) {
+func (s *UserService) UpdateUser(user *model.Users) (*model.Users, error) {
 	return s.repo.UpdateUser(user)
 }
 
@@ -50,18 +50,19 @@ func (s *UserService) DeleteUser(userID int) error {
 	return s.repo.DeleteUser(userID)
 }
 
-func (s *UserService) GetUserByID(userID int) (*model.User, error) {
+func (s *UserService) GetUserByID(userID int) (*model.Users, error) {
 	return s.repo.GetUserByID(userID)
 }
 
 // Create
 func (s *UserService) HandleUserCreateEvent(userCreateEvent *model.UserCreateEvent) error {
-	user := &model.User{
+	user := &model.Users{
 		ID:        userCreateEvent.UserID,
 		Nickname:  userCreateEvent.Nickname,
 		State:     userCreateEvent.State,
-		CreatedBy: userCreateEvent.Nickname,
-		UpdatedBy: userCreateEvent.Nickname,
+		ImageUrl:  userCreateEvent.ImageUrl,
+		CreatedAt: userCreateEvent.CreatedAt,
+		UpdatedAt: userCreateEvent.UpdatedAt,
 	}
 
 	_, err := s.repo.SaveUser(user)
@@ -76,12 +77,12 @@ func (s *UserService) HandleUserCreateEvent(userCreateEvent *model.UserCreateEve
 // Update
 func (s *UserService) HandleUserInfoEvent(apiResponse model.GetUserInfoApiResponse) error {
 	// GetUserInfoApiResponse를 User 모델로 변환
-	user := &model.User{
-		ID:       apiResponse.UserID,
-		Nickname: apiResponse.Nickname,
-		// State:     false,                // 상태를 true로 설정하거나 필요한 로직에 따라 변경하세요
-		CreatedBy: apiResponse.Nickname, // 생성자를 Nickname으로 설정하거나 필요한 로직에 따라 변경하세요
-		UpdatedBy: apiResponse.Nickname, // 업데이트한 사람을 Nickname으로 설정하거나 필요한 로직에 따라 변경하세요
+	user := &model.Users{
+		ID:        apiResponse.UserID,
+		Nickname:  apiResponse.Nickname,
+		State:     apiResponse.State,
+		CreatedAt: apiResponse.CreatedAt,
+		UpdatedAt: apiResponse.UpdatedAt,
 	}
 
 	// SaveUser 함수를 호출하여 사용자를 저장

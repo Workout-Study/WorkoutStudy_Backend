@@ -19,7 +19,6 @@ type ChatMessage struct {
 	ID          string      `json:"messageId"`
 	UserID      int         `json:"userId"`
 	FitGroupID  int         `json:"fitGroupId"`
-	FitMateID   int         `json:"fitMateId"`
 	Message     string      `json:"message"`
 	MessageTime time.Time   `json:"messageTime"`
 	MessageType MessageType `json:"messageType"`

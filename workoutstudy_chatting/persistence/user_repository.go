@@ -8,10 +8,10 @@ import (
 )
 
 type UserRepository interface {
-	SaveUser(user *model.User) (*model.User, error)
-	UpdateUser(user *model.User) (*model.User, error)
+	SaveUser(user *model.Users) (*model.Users, error)
+	UpdateUser(user *model.Users) (*model.Users, error)
 	DeleteUser(userID int) error
-	GetUserByID(userID int) (*model.User, error)
+	GetUserByID(userID int) (*model.Users, error)
 }
 
 type UserRepositoryImpl struct {
@@ -24,10 +24,10 @@ func NewUserRepository(db *sql.DB) UserRepository {
 	return &UserRepositoryImpl{DB: db}
 }
 
-func (repo *UserRepositoryImpl) SaveUser(user *model.User) (*model.User, error) {
-	query := `INSERT INTO "user" (id, nickname, state, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+func (repo *UserRepositoryImpl) SaveUser(user *model.Users) (*model.Users, error) {
+	query := `INSERT INTO users (id, nickname, state, image_url,created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
+	err := repo.DB.QueryRow(query, user.ID, user.Nickname, user.State, user.ImageUrl, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
 	if err != nil {
 		log.Printf("Error saving user: %v", err)
 		return nil, fmt.Errorf("error saving user: %w", err)
@@ -35,7 +35,7 @@ func (repo *UserRepositoryImpl) SaveUser(user *model.User) (*model.User, error) 
 	return user, nil
 }
 
-func (repo *UserRepositoryImpl) UpdateUser(user *model.User) (*model.User, error) {
+func (repo *UserRepositoryImpl) UpdateUser(user *model.Users) (*model.Users, error) {
 	query := `UPDATE user SET nickname = $2, state = $3, updated_at = $4 WHERE id = $1 RETURNING id`
 
 	// 쿼리 실행
@@ -59,11 +59,11 @@ func (repo *UserRepositoryImpl) DeleteUser(userID int) error {
 	return nil
 }
 
-func (repo *UserRepositoryImpl) GetUserByID(userID int) (*model.User, error) {
+func (repo *UserRepositoryImpl) GetUserByID(userID int) (*model.Users, error) {
 	query := `SELECT id, nickname, state, created_at, updated_at FROM user WHERE id = $1`
 
 	// 쿼리 실행
-	user := model.User{}
+	user := model.Users{}
 	err := repo.DB.QueryRow(query, userID).Scan(&user.ID, &user.Nickname, &user.State, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
