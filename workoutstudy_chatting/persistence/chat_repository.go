@@ -106,6 +106,6 @@ func (repo *ChatRepositoryImpl) SaveMessage(msg model.ChatMessage) error {
     INSERT INTO message (message_id, user_id, fit_group_id, message, message_time, message_type, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
     `
-	_, err := repo.DB.Exec(query, msg.ID, msg.UserID, msg.FitGroupID, msg.Message, msg.MessageTime, msg.MessageType, time.Now(), time.Now())
+	_, err := repo.DB.Exec(query, msg.ID, msg.UserID, msg.FitGroupID, msg.Message, msg.MessageTime, msg.MessageType)
 	return err
 }
