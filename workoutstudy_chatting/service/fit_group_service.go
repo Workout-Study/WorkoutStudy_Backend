@@ -2,6 +2,7 @@ package service
 
 import (
 	"log"
+	"time"
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/persistence"
 )
@@ -47,32 +48,41 @@ func (s *FitGroupService) SaveFitGroup(fitGroup *model.FitGroup) (*model.FitGrou
 
 func (s *FitGroupService) HandleFitGroupEvent(apiResponse model.GetFitGroupDetailApiResponse, fitGroupEvents chan int) error {
 	// 1. Get Fit group detail API 의 fitGroupId로 fit_group 테이블 조회
+	log.Printf("Querying fit group by ID: %d", apiResponse.FitGroupId)
 	fitGroup, err := s.repo.GetFitGroupByID(apiResponse.FitGroupId)
 	if err != nil {
+		log.Printf("Error querying fit group by ID: %v", err)
 		return err
 	}
 
-	// 1-a. 존재할 시 Create skip -> Delete 로 이동
 	if fitGroup != nil {
+		log.Printf("Fit group exists. ID: %d", fitGroup.ID)
+		// 1-a. 존재할 시 Create skip -> Delete 로 이동
 		// 2. API Response 의 state 확인
 		if apiResponse.State {
 			// 2-a. state 가 true 일 시 DB에서 해당 fit_group의 state 를 true 로 변경 -> 삭제
+			log.Printf("State is true. Deleting fit group ID: %d", apiResponse.FitGroupId)
 			return s.repo.DeleteFitGroup(apiResponse.FitGroupId)
 		} else {
 			// 2-b. state 가 false 일 시 진행 skip, proceed to Update
 			// Update
 			// 2. API Response 와 DB 의 fit_group 정보 비교
+			log.Printf("State is false. Checking if update is needed for fit group ID: %d", fitGroup.ID)
 			if shouldUpdate(fitGroup, apiResponse) {
 				// 2-a. 다를 시 DB 정보를 API Response 로 업데이트
+				log.Printf("Updating fit group ID: %d", fitGroup.ID)
 				return s.repo.UpdateFitGroup(convertApiToModel(apiResponse))
 			}
 			// 2-b. 같을 시 진행 skip
+			log.Printf("No update needed for fit group ID: %d", fitGroup.ID)
 			return nil // No changes needed, nothing to update
 		}
 	} else {
 		// 1-b-1. DB에 존재하지 않을 시 fit_group 테이블에 API Response 로 row 생성
+		log.Printf("Fit group does not exist. Creating new fit group.")
 		newFitGroup, err := s.repo.SaveFitGroup(convertApiToModel(apiResponse))
 		if err != nil {
+			log.Printf("Error saving new fit group: %v", err)
 			return err
 		}
 		// 1-b-2. row 생성 이후, fit_group row가 입력됐다는 것을 Get Fit Mate list API Handler 에게 알림
@@ -94,6 +104,12 @@ func shouldUpdate(existing *model.FitGroup, response model.GetFitGroupDetailApiR
 }
 
 func convertApiToModel(apiResp model.GetFitGroupDetailApiResponse) *model.FitGroup {
+	createdAt, err := time.Parse(time.RFC3339, apiResp.CreatedAt)
+	if err != nil {
+		log.Printf("Error parsing CreatedAt: %v", err)
+		createdAt = time.Now() // Fallback to current time if parsing fails
+	}
+
 	return &model.FitGroup{
 		ID:                  apiResp.FitGroupId,
 		FitLeaderUserID:     apiResp.FitLeaderUserId,
@@ -104,5 +120,9 @@ func convertApiToModel(apiResp model.GetFitGroupDetailApiResponse) *model.FitGro
 		PresentFitMateCount: apiResp.PresentFitMateCount,
 		MaxFitMate:          apiResp.MaxFitMate,
 		State:               apiResp.State,
+		CreatedAt:           createdAt,
+		CreatedBy:           apiResp.FitGroupName,
+		UpdatedAt:           time.Now(),
+		UpdatedBy:           apiResp.FitGroupName,
 	}
 }

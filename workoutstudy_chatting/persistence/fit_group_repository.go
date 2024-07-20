@@ -82,13 +82,26 @@ func (repo *FitGroupRepositoryImpl) GetFitMatesByFitGroupId(id int) ([]int, erro
 
 func (repo *FitGroupRepositoryImpl) SaveFitGroup(fitGroup *model.FitGroup) (*model.FitGroup, error) {
 	query := `
-		INSERT INTO fit_group (fit_group_name, max_fit_mate, created_at, created_by, updated_at, updated_by)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO fit_group (id, fit_leader_user_id, fit_group_name, category, cycle, frequency, present_fit_mate_count, max_fit_mate, state, created_at, created_by, updated_at, updated_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id
 	`
 
 	var id int
-	err := repo.DB.QueryRow(query, fitGroup.FitGroupName, fitGroup.MaxFitMate, fitGroup.CreatedAt, fitGroup.CreatedBy, fitGroup.UpdatedAt, fitGroup.UpdatedBy).Scan(&id)
+	err := repo.DB.QueryRow(query,
+		fitGroup.ID,
+		fitGroup.FitLeaderUserID,
+		fitGroup.FitGroupName,
+		fitGroup.Category,
+		fitGroup.Cycle,
+		fitGroup.Frequency,
+		fitGroup.PresentFitMateCount,
+		fitGroup.MaxFitMate,
+		fitGroup.State,
+		fitGroup.CreatedAt,
+		fitGroup.CreatedBy,
+		fitGroup.UpdatedAt,
+		fitGroup.UpdatedBy).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
