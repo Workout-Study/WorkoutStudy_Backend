@@ -81,9 +81,7 @@ func InitializeDB() *sql.DB {
 			message_time TIMESTAMP(6),
 			message_type VARCHAR(8) CHECK (message_type IN ('CHATTING', 'TICKET')),
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-			created_by VARCHAR(30),
-			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-			updated_by VARCHAR(30)
+			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL
 		)`,
 	}
 

@@ -103,9 +103,9 @@ func (repo *ChatRepositoryImpl) RetrieveMessagesInRange(fitGroupID int, start, e
 func (repo *ChatRepositoryImpl) SaveMessage(msg model.ChatMessage) error {
 	log.Printf("chat repository 에서 메시지 저장 시작: %v", msg)
 	query := `
-    INSERT INTO message (message_id, user_id, fit_group_id, message, message_time, message_type, created_at, created_by, updated_at, updated_by)
-	VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, NOW(), $7)
+    INSERT INTO message (message_id, user_id, fit_group_id, message, message_time, message_type, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
     `
-	_, err := repo.DB.Exec(query, msg.ID, msg.FitGroupID, msg.UserID, msg.Message, msg.MessageTime, msg.MessageType, time.Now(), msg.UserID, time.Now(), msg.UserID)
+	_, err := repo.DB.Exec(query, msg.ID, msg.UserID, msg.FitGroupID, msg.Message, msg.MessageTime, msg.MessageType, time.Now(), time.Now())
 	return err
 }
