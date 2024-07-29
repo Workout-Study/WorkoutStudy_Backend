@@ -42,7 +42,7 @@ func InitializeDB() *sql.DB {
 	createTables := []string{
 		`CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
-			nickname VARCHAR(10),
+			nickname VARCHAR(12),
 			state BOOLEAN DEFAULT false NOT NULL,
 			image_url VARCHAR(255) NOT NULL,
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
