@@ -182,7 +182,8 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 }
 
 func sendWebhook(chatMsg model.ChatMessage, userID int) {
-	webhookURL := "http://alarm-service:8080/chat/real-time-chat"
+	// TODO : 알림 바디 로그 출력 해야함
+	webhookURL := "http://auth-service:8080/chat/real-time-chat"
 	jsonData, err := json.Marshal(chatMsg)
 	if err != nil {
 		log.Printf("웹훅 요청을 위한 JSON 변환 실패: %v", err)
