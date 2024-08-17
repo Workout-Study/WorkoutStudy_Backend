@@ -184,12 +184,18 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 func sendWebhook(chatMsg model.ChatMessage, userID int) {
 	// TODO : 알림 바디 로그 출력 해야함
 	webhookURL := "http://auth-service:8080/chat/real-time-chat"
+
+	// JSON 변환 시도
 	jsonData, err := json.Marshal(chatMsg)
 	if err != nil {
 		log.Printf("웹훅 요청을 위한 JSON 변환 실패: %v", err)
 		return
 	}
 
+	// 요청 바디로 보낼 데이터를 로그로 출력
+	log.Printf("웹훅 요청 바디: %s", string(jsonData))
+
+	// POST 요청 생성
 	req, err := http.NewRequest("POST", webhookURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Printf("웹훅 요청 생성 실패: %v", err)
@@ -197,12 +203,17 @@ func sendWebhook(chatMsg model.ChatMessage, userID int) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	// HTTP 클라이언트 설정 및 요청 실행
 	client := &http.Client{Timeout: 10 * time.Second}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("웹훅 요청 실패: %v", err)
+		return
 	}
-	// 응답을 무시하고 로그만 남김
+	defer resp.Body.Close()
+
+	// 웹훅 응답 상태 코드 로그로 출력
+	log.Printf("웹훅 응답 상태 코드: %d", resp.StatusCode)
 }
 
 // @Summary 최신 채팅 내역을 확인하고 동기화 하기 위한 API

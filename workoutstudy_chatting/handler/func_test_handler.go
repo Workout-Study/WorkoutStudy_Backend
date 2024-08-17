@@ -43,7 +43,7 @@ func (h *TestHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, savedUser)
+	c.JSON(http.StatusCreated, savedUser)
 }
 
 // POST /test/create/fit-group
@@ -64,7 +64,7 @@ func (h *TestHandler) CreateFitGroup(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, savedFitGroup)
+	c.JSON(http.StatusCreated, savedFitGroup)
 }
 
 // POST /test/create/fit-mate
@@ -85,5 +85,5 @@ func (h *TestHandler) CreateFitMate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, savedFitMate)
+	c.JSON(http.StatusCreated, savedFitMate)
 }
