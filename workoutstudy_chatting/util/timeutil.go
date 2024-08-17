@@ -9,7 +9,7 @@ import (
 // ParseMessageTime 함수는 시간 문자열을 입력받아 time.Time 객체를 반환합니다.
 func ParseMessageTime(timeStr string) (time.Time, error) {
 	// 만약 타임존에 + 또는 - 기호가 없다면 +를 추가해줍니다.
-	if len(timeStr) > 19 && strings.Contains(timeStr, " ") && !strings.Contains(timeStr, "+") && !strings.Contains(timeStr, "-") {
+	if len(timeStr) > 19 && strings.Contains(timeStr, "") && !strings.Contains(timeStr, "+") && !strings.Contains(timeStr, "-") {
 		// 공백 이후 타임존 부분을 가져와서 +를 추가
 		timeStr = strings.TrimSpace(timeStr[:len(timeStr)-6]) + "+09:00"
 	}
