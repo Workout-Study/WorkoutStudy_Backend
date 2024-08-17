@@ -32,6 +32,8 @@ RetrieveMesaages
 func (s *ChatService) RetrieveMessages(fitGroupID int, messageTime time.Time, messageID string) ([]model.ChatMessage, string, error) {
 	log.Printf("Service layer: Retrieving messages for fit_group_id: %d, messageTime: %v", fitGroupID, messageTime)
 	log.Printf("최신 메시지 조회 시작")
+
+	// 최신 메시지들을 조회
 	messages, err := s.repo.RetrieveMessages(fitGroupID, messageTime)
 	if err != nil {
 		return nil, "", err
@@ -40,21 +42,27 @@ func (s *ChatService) RetrieveMessages(fitGroupID int, messageTime time.Time, me
 
 	var filteredMessages []model.ChatMessage
 	var latestMessageId string
+
+	// 최신 메시지가 존재하는 경우
 	if len(messages) > 0 {
 		latestMessageId = messages[0].ID // 최신 메시지 ID 저장
+
+		// 최신 메시지와 요청된 messageID 비교
 		if latestMessageId == messageID {
-			// 두 messageId 가 일치할 시 최신 message 객체만 Return
+			// 두 messageID가 일치할 시 최신 메시지만 반환
 			filteredMessages = []model.ChatMessage{messages[0]}
 		} else {
-			// 두 messageId가 불일치할 시 요청된 messageTime과 최신 메시지의 messageTime 사이의 모든 메시지를 반환
+			// 메시지 ID가 일치하지 않으면 요청된 시간 이후 메시지들 반환
 			filteredMessages, err = s.repo.RetrieveMessagesInRange(fitGroupID, messageTime, messages[0].MessageTime)
 			if err != nil {
 				return nil, "", err
 			}
 		}
+	} else {
+		// 메시지가 없는 경우 빈 리스트 반환
+		return []model.ChatMessage{}, "", nil
 	}
 
-	// 필터링된 메시지 배열과 최신 메시지의 ID 반환
 	return filteredMessages, latestMessageId, nil
 }
 

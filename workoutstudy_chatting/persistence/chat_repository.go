@@ -45,8 +45,9 @@ func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time
 	query := `
     SELECT message_id, user_id, fit_group_id, message, message_time, message_type
     FROM message
-    WHERE fit_group_id = $1 AND message_time > $2
+    WHERE fit_group_id = $1 AND message_time >= $2 -- 최신 메시지와 요청 메시지 시간 포함
     ORDER BY message_time DESC
+    LIMIT 1 -- 최신 메시지 하나만 가져옴
     `
 	log.Printf("Repository layer: Executing query for fitGroupID: %d, since: %v", fitGroupID, since)
 	rows, err := repo.DB.Query(query, fitGroupID, since)
