@@ -26,12 +26,17 @@ func main() {
 	fitGroupService := service.NewFitGroupService(persistence.NewFitGroupRepository(DB), make(chan int))
 	userService := service.NewUserService(persistence.NewUserRepository(DB))
 
+	testHandler := handler.NewTestHandler(userService, fitGroupService, fitMateService)
 	chatHandler := handler.NewChatHandler(chatService, fitMateService, fitGroupService)
 	fitMateHandler := handler.NewFitMateHandler(fitMateService)
 
 	r := gin.Default()
 	r.Static("/docs", "./docs")
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/docs/doc.json")))
+
+	r.POST("/test/create/user", testHandler.CreateUser)
+	r.POST("/test/create/fit-group", testHandler.CreateFitGroup)
+	r.POST("/test/create/fit-mate", testHandler.CreateFitMate)
 
 	r.GET("/chat", chatHandler.Chat)
 	r.GET("/retrieve/fit-group", fitMateHandler.RetrieveFitGroupByUserID)
