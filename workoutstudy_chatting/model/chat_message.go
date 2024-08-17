@@ -38,7 +38,7 @@ func (cm *ChatMessage) UnmarshalJSON(data []byte) error {
 	}
 
 	// 따옴표를 제거한 시간 형식 문자열 사용
-	t, err := time.Parse("2006-01-02T15:04:05.999999999", tmp.MessageTime)
+	t, err := time.Parse("2006-01-02 15:04:05.999999-07:00", tmp.MessageTime)
 	if err != nil {
 		return err
 	}
