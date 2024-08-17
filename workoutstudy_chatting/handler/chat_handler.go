@@ -225,17 +225,23 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	messageTimeStr := c.Query("messageTime")
 	messageType := c.Query("messageType")
 
+	// 원본 messageTimeStr을 로그로 출력
+	log.Printf("Original messageTimeStr: %s", messageTimeStr)
+
 	// URL 디코딩을 시도합니다.
 	decodedMessageTimeStr, err := url.QueryUnescape(messageTimeStr)
 	if err != nil {
+		log.Printf("Failed to unescape messageTimeStr: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid message time format"})
 		return
 	}
 
+	// 디코딩된 messageTimeStr을 로그로 출력
+	log.Printf("Decoded messageTimeStr: %s", decodedMessageTimeStr)
+
 	log.Printf("Received messageId: %s", messageID)
 	log.Printf("Received fitGroupId: %s", fitGroupIDStr)
 	log.Printf("Received userId: %s", userId)
-	log.Printf("Received messageTime: %s", decodedMessageTimeStr)
 	log.Printf("Received messageType: %s", messageType)
 
 	fitGroupID, err := strconv.Atoi(fitGroupIDStr)
@@ -247,9 +253,13 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	// 디코딩된 시간을 파싱합니다.
 	messageTime, err := util.ParseMessageTime(decodedMessageTimeStr)
 	if err != nil {
+		log.Printf("Failed to parse messageTime: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "시간 파싱 실패"})
 		return
 	}
+
+	// 파싱된 messageTime을 로그로 출력
+	log.Printf("Parsed messageTime: %s", messageTime)
 
 	log.Printf("Retrieving messages for fitGroupID: %d, since: %v, messageID: %s", fitGroupID, messageTime, messageID)
 	messages, latestMessageId, err := h.ChatService.RetrieveMessages(fitGroupID, messageTime, messageID)
