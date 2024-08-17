@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
@@ -224,6 +225,13 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	messageTimeStr := c.Query("messageTime")
 	messageType := c.Query("messageType")
 
+	// URL 디코딩을 시도합니다.
+	decodedMessageTimeStr, err := url.QueryUnescape(messageTimeStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid message time format"})
+		return
+	}
+
 	log.Printf("Received messageId: %s", messageID)
 	log.Printf("Received fitGroupId: %s", fitGroupIDStr)
 	log.Printf("Received userId: %s", userId)
@@ -238,7 +246,8 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 		return
 	}
 
-	messageTime, err := util.ParseMessageTime(messageTimeStr)
+	// 디코딩된 시간을 파싱합니다.
+	messageTime, err := util.ParseMessageTime(decodedMessageTimeStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "시간 파싱 실패"})
 		return
