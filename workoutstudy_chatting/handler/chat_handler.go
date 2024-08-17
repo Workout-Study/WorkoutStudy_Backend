@@ -235,14 +235,12 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	log.Printf("Received messageId: %s", messageID)
 	log.Printf("Received fitGroupId: %s", fitGroupIDStr)
 	log.Printf("Received userId: %s", userId)
-	log.Printf("Received messageTime: %s", messageTimeStr)
+	log.Printf("Received messageTime: %s", decodedMessageTimeStr)
 	log.Printf("Received messageType: %s", messageType)
 
 	fitGroupID, err := strconv.Atoi(fitGroupIDStr)
 	if err != nil {
-		// TODO : 에러는 소문자로
-		// c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fit-group-id"})
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "잘못된 fit-group-id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fit-group-id"})
 		return
 	}
 
