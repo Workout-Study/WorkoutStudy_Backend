@@ -38,7 +38,7 @@ func (kc *KafkaConsumer) Consume(ctx context.Context, msgChan chan handler.Messa
 	for topic, reader := range kc.Readers {
 		go func(topic string, r *kafka.Reader) {
 			log.Printf("Starting Kafka Consumer for topic: %s", topic)
-			for { 
+			for {
 				m, err := r.FetchMessage(ctx)
 				if err != nil {
 					log.Printf("Error fetching message from topic %s: %v\n", topic, err)
