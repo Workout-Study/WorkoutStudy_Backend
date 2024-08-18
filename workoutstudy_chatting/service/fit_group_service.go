@@ -104,10 +104,12 @@ func shouldUpdate(existing *model.FitGroup, response model.GetFitGroupDetailApiR
 }
 
 func convertApiToModel(apiResp model.GetFitGroupDetailApiResponse) *model.FitGroup {
-	createdAt, err := time.Parse(time.RFC3339, apiResp.CreatedAt)
+	const customLayout = "2006-01-02 15:04:05.999999-07:00"
+
+	createdAt, err := time.Parse(customLayout, apiResp.CreatedAt)
 	if err != nil {
 		log.Printf("Error parsing CreatedAt: %v", err)
-		createdAt = time.Now() // Fallback to current time if parsing fails
+		createdAt = time.Now() // 파싱 실패 시 현재 시간으로 대체
 	}
 
 	return &model.FitGroup{
