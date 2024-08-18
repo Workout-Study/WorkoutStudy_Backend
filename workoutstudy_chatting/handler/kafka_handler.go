@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"workoutstudy_chatting/model"
 	"workoutstudy_chatting/service"
@@ -183,19 +182,24 @@ func UserCreateEventHandler(c chan MessageEvent, userService service.UserUseCase
 }
 
 func handleUserCreateEvent(userCreateEvent model.UserCreateEvent, userService service.UserUseCase) {
-	createdAtInt, err := strconv.ParseInt(userCreateEvent.CreatedAt, 10, 64)
-	if err != nil {
-		log.Printf("Error parsing CreatedAt: %v\n", err)
-		return
-	}
-	updatedAtInt, err := strconv.ParseInt(userCreateEvent.UpdatedAt, 10, 64)
-	if err != nil {
-		log.Printf("Error parsing UpdatedAt: %v\n", err)
-		return
-	}
+	// customLayout을 사용하여 문자열을 시간으로 변환
+	// const customLayout = "2006-01-02 15:04:05.999999-07:00"
 
-	userCreateEvent.CreatedAt = time.Unix(0, createdAtInt*int64(time.Millisecond)).Format(time.RFC3339)
-	userCreateEvent.UpdatedAt = time.Unix(0, updatedAtInt*int64(time.Millisecond)).Format(time.RFC3339)
+	// createdAt, err := time.Parse(customLayout, userCreateEvent.CreatedAt)
+	// if err != nil {
+	// 	log.Printf("Error parsing CreatedAt: %v\n", err)
+	// 	return
+	// }
+
+	// updatedAt, err := time.Parse(customLayout, userCreateEvent.UpdatedAt)
+	// if err != nil {
+	// 	log.Printf("Error parsing UpdatedAt: %v\n", err)
+	// 	return
+	// }
+
+	// // 시간 데이터를 RFC3339 형식으로 변환
+	// userCreateEvent.CreatedAt = createdAt.Format(time.RFC3339)
+	// userCreateEvent.UpdatedAt = updatedAt.Format(time.RFC3339)
 
 	if err := userService.HandleUserCreateEvent(&userCreateEvent); err != nil {
 		log.Printf("Error handling user creation process: %v\n", err)
