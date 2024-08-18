@@ -149,10 +149,12 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 		}
 
 		var chatMsg model.ChatMessage
+		log.Printf("chat handler 에서 확인한 unmarshal 되기 전 messageTime: %v", chatMsg.MessageTime)
 		if err := json.Unmarshal(message, &chatMsg); err != nil {
 			log.Printf("unmarshal error: %v", err)
 			continue
 		}
+		log.Printf("chat handler 에서 확인한 messageTime: %v", chatMsg.MessageTime)
 
 		room.broadcast <- chatMsg
 

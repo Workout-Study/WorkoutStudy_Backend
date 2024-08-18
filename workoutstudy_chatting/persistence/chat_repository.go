@@ -42,6 +42,9 @@ func (repo *ChatRepositoryImpl) RetrieveMessage(fitGroupID int) (int, error) {
 }
 
 func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time) ([]model.ChatMessage, error) {
+	// 로그로 since 파라미터 출력
+	log.Printf("Repository layer: 최신 채팅 조회 시작 fitGroupID: %d, since: %v", fitGroupID, since)
+
 	query := `
     SELECT message_id, user_id, fit_group_id, message, message_time, message_type
     FROM message
@@ -49,7 +52,6 @@ func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time
     ORDER BY message_time DESC
     LIMIT 1 -- 최신 메시지 하나만 가져옴
     `
-	log.Printf("Repository layer: Executing query for fitGroupID: %d, since: %v", fitGroupID, since)
 	rows, err := repo.DB.Query(query, fitGroupID, since)
 	if err != nil {
 		log.Printf("Repository layer: Error executing query: %v", err)
@@ -73,6 +75,7 @@ func (repo *ChatRepositoryImpl) RetrieveMessages(fitGroupID int, since time.Time
 }
 
 func (repo *ChatRepositoryImpl) RetrieveMessagesInRange(fitGroupID int, start, end time.Time) ([]model.ChatMessage, error) {
+	log.Printf("Repository layer: 채팅 범위 조회 시작 fitGroupID: %d, start: %v, end: %v", fitGroupID, start, end)
 	query := `
     SELECT message_id, user_id, fit_group_id, message, message_time, message_type
     FROM message
@@ -104,10 +107,13 @@ func (repo *ChatRepositoryImpl) RetrieveMessagesInRange(fitGroupID int, start, e
 
 func (repo *ChatRepositoryImpl) SaveMessage(msg model.ChatMessage) error {
 	log.Printf("chat repository 에서 메시지 저장 시작: %v", msg)
+	log.Printf("chat repository 에서 저장하는 메세지의 파싱 전 messageTime: %v", msg.MessageTime)
+	formattedTime := msg.MessageTime.Format("2006-01-02 15:04:05.999999-07:00")
+	log.Printf("chat repository 에서 저장하는 메세지의 파싱 후 messageTime: %v", formattedTime)
 	query := `
     INSERT INTO message (message_id, user_id, fit_group_id, message, message_time, message_type, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
     `
-	_, err := repo.DB.Exec(query, msg.ID, msg.UserID, msg.FitGroupID, msg.Message, msg.MessageTime, msg.MessageType)
+	_, err := repo.DB.Exec(query, msg.ID, msg.UserID, msg.FitGroupID, msg.Message, formattedTime, msg.MessageType)
 	return err
 }

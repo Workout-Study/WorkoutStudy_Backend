@@ -44,7 +44,7 @@ func InitializeDB() *sql.DB {
 			id INTEGER PRIMARY KEY,
 			nickname VARCHAR(12),
 			state BOOLEAN DEFAULT false NOT NULL,
-			image_url VARCHAR(255) NOT NULL,
+			image_url VARCHAR(255),
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL
 		)`,
@@ -78,7 +78,7 @@ func InitializeDB() *sql.DB {
 			user_id INTEGER REFERENCES users(id) NOT NULL,
 			fit_group_id INTEGER REFERENCES fit_group(id) NOT NULL,
 			message TEXT NOT NULL,
-			message_time TIMESTAMP(6),
+			message_time TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			message_type VARCHAR(8) CHECK (message_type IN ('CHATTING', 'TICKET')),
 			created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL
