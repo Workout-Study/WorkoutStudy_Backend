@@ -156,6 +156,19 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 		}
 		log.Printf("chat handler 에서 확인한 messageTime: %v", chatMsg.MessageTime)
 
+		// 시간 변환을 위한 커스텀 레이아웃
+		const customLayout = "2006-01-02 15:04:05.999999-07:00"
+
+		// messageTime을 변환된 형식으로 변환
+		chatMsg.MessageTime, err = time.Parse(customLayout, chatMsg.MessageTime.Format(customLayout))
+		if err != nil {
+			log.Printf("시간 변환 실패: %v", err)
+			continue
+		}
+
+		// 변환된 시간 출력
+		log.Printf("변환된 messageTime: %s", chatMsg.MessageTime.Format(customLayout))
+
 		room.broadcast <- chatMsg
 
 		err = h.ChatService.SaveChatMessage(chatMsg)
