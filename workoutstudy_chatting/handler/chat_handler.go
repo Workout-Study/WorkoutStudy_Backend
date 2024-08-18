@@ -216,6 +216,15 @@ func sendWebhook(chatMsg model.ChatMessage, userID int) {
 	log.Printf("웹훅 응답 상태 코드: %d", resp.StatusCode)
 }
 
+type ChatMessageResponse struct {
+	MessageID   string `json:"messageId"`
+	UserID      int    `json:"userId"`
+	FitGroupID  int    `json:"fitGroupId"`
+	Message     string `json:"message"`
+	MessageTime string `json:"messageTime"`
+	MessageType string `json:"messageType"`
+}
+
 // @Summary 최신 채팅 내역을 확인하고 동기화 하기 위한 API
 // @Description messageId 로 서버측 최신 채팅과 앱의 최신 채팅을 비교
 // @Tags message
@@ -235,7 +244,7 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	messageTimeStr := c.Query("messageTime")
 	messageType := c.Query("messageType")
 
-	// URL 디코딩을 제거하고 그대로 로그 출력
+	// 로그 출력
 	log.Printf("Original messageTimeStr: %s", messageTimeStr)
 
 	log.Printf("Received messageId: %s", messageID)
@@ -249,7 +258,7 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 		return
 	}
 
-	// 그대로 파싱
+	// 시간 파싱
 	messageTime, err := util.ParseMessageTime(messageTimeStr)
 	if err != nil {
 		log.Printf("Failed to parse messageTime: %v", err)
@@ -257,10 +266,9 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 		return
 	}
 
-	// 파싱된 messageTime을 로그로 출력
 	log.Printf("Parsed messageTime: %s", messageTime)
 
-	log.Printf("Retrieving messages for fitGroupID: %d, since: %v, messageID: %s", fitGroupID, messageTime, messageID)
+	// 메시지 조회
 	messages, latestMessageId, err := h.ChatService.RetrieveMessages(fitGroupID, messageTime, messageID)
 	if err != nil {
 		log.Printf("Error retrieving messages: %v", err)
@@ -269,10 +277,24 @@ func (h *ChatHandler) RetrieveMessages(c *gin.Context) {
 	}
 	log.Printf("Retrieved messages: %d, latestMessageId: %s", len(messages), latestMessageId)
 
+	// 메시지를 원하는 형식으로 포맷팅
+	var responseMessages []ChatMessageResponse
+	for _, msg := range messages {
+		formattedMessageTime := msg.MessageTime.Format("2006-01-02 15:04:05.999999-07:00")
+		responseMessages = append(responseMessages, ChatMessageResponse{
+			MessageID:   msg.ID,
+			UserID:      msg.UserID,
+			FitGroupID:  msg.FitGroupID,
+			Message:     msg.Message,
+			MessageTime: formattedMessageTime,
+			MessageType: string(msg.MessageType),
+		})
+	}
+
 	// 조건에 따라 메시지 반환 로직
 	if messageID == latestMessageId {
-		c.JSON(http.StatusOK, gin.H{"messages": messages[:1]}) // 가장 최신 메시지만 반환
+		c.JSON(http.StatusOK, gin.H{"messages": responseMessages[:1]}) // 가장 최신 메시지만 반환
 	} else {
-		c.JSON(http.StatusOK, gin.H{"messages": messages})
+		c.JSON(http.StatusOK, gin.H{"messages": responseMessages})
 	}
 }
