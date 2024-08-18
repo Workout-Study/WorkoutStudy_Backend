@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 )
 
@@ -24,6 +25,7 @@ type ChatMessage struct {
 	MessageType MessageType `json:"messageType"`
 }
 
+// UnmarshalJSON은 시간 문자열을 time.Time으로 변환할 때 타임존 정보가 포함되도록 파싱합니다.
 func (cm *ChatMessage) UnmarshalJSON(data []byte) error {
 	type Alias ChatMessage
 	tmp := struct {
@@ -37,9 +39,10 @@ func (cm *ChatMessage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// 따옴표를 제거한 시간 형식 문자열 사용
-	t, err := time.Parse("2006-01-02 15:04:05.999999-07:00", tmp.MessageTime)
+	// 타임존 정보를 포함한 시간 문자열을 파싱
+	t, err := time.Parse(time.RFC3339Nano, tmp.MessageTime)
 	if err != nil {
+		log.Printf("Error parsing MessageTime: %v", err)
 		return err
 	}
 
