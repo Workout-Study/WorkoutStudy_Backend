@@ -57,13 +57,15 @@ func (s *UserService) GetUserByID(userID int) (*model.Users, error) {
 
 // Create
 func (s *UserService) HandleUserCreateEvent(userCreateEvent *model.UserCreateEvent) error {
-	createdAt, err := time.Parse(time.RFC3339, userCreateEvent.CreatedAt)
+	const customLayout = "2006-01-02 15:04:05.999999-07:00"
+
+	createdAt, err := time.Parse(customLayout, userCreateEvent.CreatedAt)
 	if err != nil {
 		log.Printf("Error parsing CreatedAt: %v\n", err)
 		return fmt.Errorf("error parsing CreatedAt: %w", err)
 	}
 
-	updatedAt, err := time.Parse(time.RFC3339, userCreateEvent.UpdatedAt)
+	updatedAt, err := time.Parse(customLayout, userCreateEvent.UpdatedAt)
 	if err != nil {
 		log.Printf("Error parsing UpdatedAt: %v\n", err)
 		return fmt.Errorf("error parsing UpdatedAt: %w", err)
